@@ -192,24 +192,13 @@ function AppLayout() {
                 {item.name}
               </NavLink>
             ))}
-            {!isLoading &&
-              (user ? (
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-white/5 w-full"
-                >
-                  <LogOut className="w-5 h-5" />
-                  Log Out
-                </button>
-              ) : (
-                <button
-                  onClick={handleLogin}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-white/5 w-full"
-                >
-                  <LogIn className="w-5 h-5" />
-                  Log In
-                </button>
-              ))}
+            <button
+              onClick={logout}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-white/5 w-full"
+            >
+              <LogOut className="w-5 h-5" />
+              Log Out
+            </button>
           </div>
         )}
       </nav>
