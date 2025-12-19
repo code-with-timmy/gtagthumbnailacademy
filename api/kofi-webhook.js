@@ -8,6 +8,18 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   // 1. Log every hit to help you debug in Vercel
+
+  if (req.method === "GET") {
+    return res.status(200).json({
+      status: "Ready",
+      message: "The webhook is waiting for a POST request from Ko-fi.",
+    });
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ message: "Method not allowed" });
+  }
+
   console.log("--- Webhook Triggered ---");
   console.log("Method:", req.method);
   console.log("Content-Type:", req.headers["content-type"]);
