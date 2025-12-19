@@ -115,7 +115,7 @@ export default function Purchase() {
     //   return;
     // }
 
-    window.open(plan.kofi_url, "_blank");
+    navigate(plan.kofi_url);
   };
 
   // TEMPORARY LOCAL MOCK
