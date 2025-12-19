@@ -17,7 +17,7 @@ import supabase from "@/supabase";
 import { useUser } from "./Authentication/useUser";
 
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getPlans } from "@/api/apiAuth";
 
 const ICON_MAP = {
