@@ -43,9 +43,9 @@ function AppLayout() {
     { name: "Assets", page: "/assets", icon: Download },
   ];
 
-  if (user?.role === "admin") {
-    navItems.push({ name: "Upload", page: "Upload", icon: Upload });
-  }
+  // if (user?.role === "admin") {
+  //   navItems.push({ name: "Upload", page: "Upload", icon: Upload });
+  // }
 
   const handleLogin = () => {
     // base44.auth.redirectToLogin(window.location.href);
