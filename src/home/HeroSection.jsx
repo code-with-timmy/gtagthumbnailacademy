@@ -1,9 +1,9 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { createPageUrl } from '../../utils';
-import { Play, Check, Award } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { motion } from 'framer-motion';
+import React from "react";
+import { Link } from "react-router-dom";
+
+import { Play, Check, Award } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 export default function HeroSection() {
   return (
@@ -44,7 +44,7 @@ export default function HeroSection() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-gray-400 text-xl md:text-2xl max-w-3xl mx-auto mb-12 leading-relaxed"
         >
-          Learn the exact thumbnail strategies used by the top 1% of Gorilla Tag 
+          Learn the exact thumbnail strategies used by the top 1% of Gorilla Tag
           Designers to skyrocket Your CTR%. Results guaranteed.
         </motion.p>
 
@@ -54,7 +54,7 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          <Link to={createPageUrl('Purchase')}>
+          <Link to="/purchase">
             <Button
               size="lg"
               className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-14 py-9 text-2xl md:text-3xl rounded-2xl glow-blue"

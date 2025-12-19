@@ -1,29 +1,29 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { createPageUrl } from '../../utils';
-import { Phone, Users, HelpCircle, Pencil, Star, Check } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { Link } from "react-router-dom";
+
+import { Phone, Users, HelpCircle, Pencil, Star, Check } from "lucide-react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 const features = [
   {
     icon: Users,
-    title: 'Private Session',
-    desc: 'One full hour dedicated to you',
-    color: 'from-purple-500 to-pink-500'
+    title: "Private Session",
+    desc: "One full hour dedicated to you",
+    color: "from-purple-500 to-pink-500",
   },
   {
     icon: HelpCircle,
-    title: 'Ask Anything',
-    desc: 'No question is off-limits',
-    color: 'from-orange-500 to-yellow-500'
+    title: "Ask Anything",
+    desc: "No question is off-limits",
+    color: "from-orange-500 to-yellow-500",
   },
   {
     icon: Pencil,
-    title: 'Portfolio Review',
-    desc: 'Get feedback on your work',
-    color: 'from-red-500 to-orange-500'
-  }
+    title: "Portfolio Review",
+    desc: "Get feedback on your work",
+    color: "from-red-500 to-orange-500",
+  },
 ];
 
 export default function VoiceCallSection() {
@@ -70,7 +70,8 @@ export default function VoiceCallSection() {
           transition={{ delay: 0.2 }}
           className="text-gray-400 text-center mb-12"
         >
-          Get <span className="text-cyan-400 font-semibold">direct access</span> to ask me anything about thumbnail design, workflow, or strategies
+          Get <span className="text-cyan-400 font-semibold">direct access</span>{" "}
+          to ask me anything about thumbnail design, workflow, or strategies
         </motion.p>
 
         {/* Feature Cards */}
@@ -84,7 +85,9 @@ export default function VoiceCallSection() {
               transition={{ delay: 0.1 * idx }}
               className="glass-card rounded-2xl p-6 text-center"
             >
-              <div className={`w-14 h-14 mx-auto mb-4 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center`}>
+              <div
+                className={`w-14 h-14 mx-auto mb-4 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center`}
+              >
                 <feature.icon className="w-7 h-7 text-white" />
               </div>
               <h4 className="font-bold text-lg mb-1">{feature.title}</h4>
@@ -105,10 +108,14 @@ export default function VoiceCallSection() {
             <Star className="w-4 h-4" />
             INCLUDED WITH VIP ACCESS
           </div>
-          <h4 className="coolvetica text-2xl font-bold mb-2">Unlock Personal Mentorship</h4>
+          <h4 className="coolvetica text-2xl font-bold mb-2">
+            Unlock Personal Mentorship
+          </h4>
           <p className="text-gray-400 mb-4">
-            Schedule your private 1-hour voice call when you upgrade to{' '}
-            <span className="text-orange-400 font-semibold">VIP Access ($250/month)</span>
+            Schedule your private 1-hour voice call when you upgrade to{" "}
+            <span className="text-orange-400 font-semibold">
+              VIP Access ($250/month)
+            </span>
           </p>
           <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-400">
             <div className="flex items-center gap-2">

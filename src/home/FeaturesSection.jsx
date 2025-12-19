@@ -1,17 +1,25 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { createPageUrl } from '../../utils';
-import { Check, Palette, Layers, Sparkles, Brush, Zap, Target } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { Link } from "react-router-dom";
+
+import {
+  Check,
+  Palette,
+  Layers,
+  Sparkles,
+  Brush,
+  Zap,
+  Target,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 const features = [
-  { icon: Palette, text: 'Color Theory & Composition' },
-  { icon: Layers, text: 'Layer Management' },
-  { icon: Sparkles, text: 'Glow & Lighting Effects' },
-  { icon: Brush, text: 'Advanced Brushwork' },
-  { icon: Zap, text: 'Quick Export Workflow' },
-  { icon: Target, text: 'CTR Optimization' },
+  { icon: Palette, text: "Color Theory & Composition" },
+  { icon: Layers, text: "Layer Management" },
+  { icon: Sparkles, text: "Glow & Lighting Effects" },
+  { icon: Brush, text: "Advanced Brushwork" },
+  { icon: Zap, text: "Quick Export Workflow" },
+  { icon: Target, text: "CTR Optimization" },
 ];
 
 export default function FeaturesSection() {
@@ -29,7 +37,9 @@ export default function FeaturesSection() {
             >
               Master Every Aspect of
               <br />
-              <span className="gradient-text">Gorilla Tag Thumbnail Design</span>
+              <span className="gradient-text">
+                Gorilla Tag Thumbnail Design
+              </span>
             </motion.h2>
 
             <motion.p
@@ -39,9 +49,9 @@ export default function FeaturesSection() {
               transition={{ delay: 0.1 }}
               className="text-gray-400 mb-8 max-w-lg"
             >
-              Our comprehensive curriculum covers everything from basic composition 
-              to advanced effects, giving you the complete toolkit to create 
-              thumbnails that dominate YouTube search results.
+              Our comprehensive curriculum covers everything from basic
+              composition to advanced effects, giving you the complete toolkit
+              to create thumbnails that dominate YouTube search results.
             </motion.p>
 
             <motion.div
@@ -50,7 +60,7 @@ export default function FeaturesSection() {
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
             >
-              <Link to={createPageUrl('Purchase')}>
+              <Link to="/purchase">
                 <Button className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-6 py-3 rounded-xl">
                   View Pricing
                 </Button>
