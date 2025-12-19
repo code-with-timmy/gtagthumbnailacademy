@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     const { email, amount, kofi_transaction_id, currency, type } = payload;
 
     const { data: plans, error: planError } = await supabase
-      .from("plan")
+      .from("plans")
       .select("id, price");
 
     if (planError) throw planError;
