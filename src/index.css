@@ -153,6 +153,10 @@ button:focus-visible {
 }
 
 @layer utilities {
+  .coolvetica {
+    font-family: "Coolvetica", sans-serif;
+  }
+
   .gradient-text {
     background: linear-gradient(135deg, #06b6d4, #a855f7);
     -webkit-background-clip: text;
