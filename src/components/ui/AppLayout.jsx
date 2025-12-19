@@ -15,11 +15,11 @@ import {
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLogout } from "@/pages/Authentication/useLogout";
 
 function AppLayout() {
-  const [user, setUser] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoading] = useState(true);
+  const { logout, isLoading } = useLogout();
 
   // useEffect(() => {
   //   const loadUser = async () => {
@@ -148,25 +148,14 @@ function AppLayout() {
                 </NavLink>
               ))}
 
-              {!isLoading &&
-                (user ? (
-                  <Button
-                    onClick={handleLogout}
-                    variant="ghost"
-                    className="ml-2 text-gray-300 hover:text-white hover:bg-white/10"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Log Out
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleLogin}
-                    className="ml-2 bg-white/10 hover:bg-white/20 text-white"
-                  >
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Log In
-                  </Button>
-                ))}
+              <Button
+                onClick={logout}
+                variant="ghost"
+                className="ml-2 text-gray-300 hover:text-white hover:bg-white/10"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Log Out
+              </Button>
             </div>
 
             {/* Mobile Menu Button */}
