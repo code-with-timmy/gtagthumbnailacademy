@@ -71,22 +71,28 @@ export default async function handler(req, res) {
     // 5. UPSERT the user profile
     // This updates the tier if they exist, or creates a new row if they don't.
     // 'email' must be a UNIQUE column in your profiles table for this to work.
+    // Change .upsert() to .update()
     const { data, error } = await supabase
       .from("profiles")
-      .upsert(
-        {
-          email: email,
-          tier: tier,
-          last_payment_date: new Date().toISOString(),
-          payment_provider: "kofi",
-        },
-        { onConflict: "email" }
-      )
+      .update({
+        tier: tier,
+        last_payment_date: new Date().toISOString(),
+        payment_provider: "kofi",
+      })
+      .eq("email", email) // Find the user by email
       .select();
 
     if (error) throw error;
 
-    console.log(`✅ Success: ${email} assigned to ${tier} tier.`);
+    // Check if anyone was actually updated
+    if (data.length === 0) {
+      console.log(`No user found with email ${email}. Tier not updated.`);
+      return res
+        .status(200)
+        .json({ received: true, message: "User not found" });
+    }
+
+    console.log(`✅ Success: Updated ${email} to ${tier} tier.`);
     return res.status(200).json({ received: true });
   } catch (err) {
     console.error("❌ Webhook Error:", err.message);
