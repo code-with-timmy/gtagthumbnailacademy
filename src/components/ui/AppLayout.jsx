@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import Header from "@/pages/Header";
-import { Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
@@ -132,8 +132,8 @@ function AppLayout() {
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-1">
               {navItems.map((item) => (
-                <Link
-                  key={item.page}
+                <NavLink
+                  key={item.name}
                   to={item.page}
                   className={({ isActive }) =>
                     `flex items-center gap-2 px-4 py-2 rounded-lg transition-all nav-glow ${
@@ -145,7 +145,7 @@ function AppLayout() {
                 >
                   <item.icon className="w-4 h-4" />
                   {item.name}
-                </Link>
+                </NavLink>
               ))}
 
               {!isLoading &&
@@ -187,8 +187,8 @@ function AppLayout() {
         {isMenuOpen && (
           <div className="md:hidden bg-[#0a0e1a] border-t border-white/10 py-4 px-4">
             {navItems.map((item) => (
-              <Link
-                key={item.page}
+              <NavLink
+                key={item.name}
                 to={item.page}
                 onClick={() => setIsMenuOpen(false)}
                 className={({ isActive }) =>
@@ -201,7 +201,7 @@ function AppLayout() {
               >
                 <item.icon className="w-5 h-5" />
                 {item.name}
-              </Link>
+              </NavLink>
             ))}
             {!isLoading &&
               (user ? (
