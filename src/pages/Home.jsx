@@ -16,10 +16,9 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import TermsOfServiceModal from "../components/TermsOfServiceModal";
-import { useAccessTier } from "../components/AccessCheck";
+
 import { motion } from "framer-motion";
 import PromoWeekBanner from "../components/PromoWeekBanner";
-import { base44 } from "@/api/base44Client";
 
 export default function Home() {
   const navigate = useNavigate();

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import {
@@ -12,9 +12,7 @@ import {
   Star,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+
 import WatermarkedVideo from "../components/WatermarkedVideo";
 import {
   useAccessTier,

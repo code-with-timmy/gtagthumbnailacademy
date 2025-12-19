@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Play, Upload, Home, Download, LogOutIcon } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+
 import { useLogout } from "./Authentication/useLogout";
 
 export default function Header() {
