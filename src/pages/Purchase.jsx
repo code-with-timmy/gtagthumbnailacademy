@@ -15,8 +15,10 @@ import {
 import { useNavigate } from "react-router-dom";
 import supabase from "@/supabase";
 import { useUser } from "./Authentication/useUser";
-import { getPlans } from "@/api/apiAuth";
+
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { getPlans } from "@/api/apiAuth";
 
 const ICON_MAP = {
   Zap: Zap,
