@@ -38,9 +38,9 @@ function AppLayout() {
   // }, []);
 
   const navItems = [
-    { name: "Home", page: "home", icon: Home },
-    { name: "Course", page: "course", icon: PlayCircle },
-    { name: "Assets", page: "assets", icon: Download },
+    { name: "Home", page: "/home", icon: Home },
+    { name: "Course", page: "/course", icon: PlayCircle },
+    { name: "Assets", page: "/assets", icon: Download },
   ];
 
   if (user?.role === "admin") {
