@@ -49,17 +49,17 @@ export default function Course() {
   const tier = profile?.subscription_tier; // This will now be 'premium' after verification
 
   // Load user to check if admin
-  React.useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const currentUser = await base44.auth.me();
-        setUser(currentUser);
-      } catch (error) {
-        console.error("Error loading user:", error);
-      }
-    };
-    loadUser();
-  }, []);
+  // React.useEffect(() => {
+  //   const loadUser = async () => {
+  //     try {
+  //       const currentUser = await base44.auth.me();
+  //       setUser(currentUser);
+  //     } catch (error) {
+  //       console.error("Error loading user:", error);
+  //     }
+  //   };
+  //   loadUser();
+  // }, []);
 
   // Auto-set active tab based on user's tier
   React.useEffect(() => {
