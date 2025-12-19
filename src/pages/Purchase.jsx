@@ -124,21 +124,22 @@ export default function Purchase() {
       // 1. Find the payment the webhook created
       const { data: payment, error: payError } = await supabase
         .from("payments")
-        .select("tier, kofi_email")
-        .eq("transaction_id", transactionId)
+        .select("tier, kofi_email") // These must match the SQL names above
+        .eq("transaction_id", transactionId.trim())
+        .eq("kofi_email", kofiEmail.trim()) // Adding email check for extra security
         .single();
 
       if (!payment) {
         throw new Error(
-          "Payment not found. Please wait 1-2 minutes for Ko-fi to sync."
+          "Payment not found. Please ensure the Email and Transaction ID match your Ko-fi receipt."
         );
       }
 
-      // 2. Use the tier from the payment record to update the user
+      // 2. Update the profile
       const { error: updateError } = await supabase
         .from("profiles")
         .update({
-          subscription_tier: payment.tier,
+          subscription_tier: payment.tier, // Matches your user object structure
           kofi_email: payment.kofi_email,
         })
         .eq("id", user.id);
