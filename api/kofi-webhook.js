@@ -5,6 +5,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const TIER_PRICES = {
+  vip: 125.0,
+  premium: 50.0,
+  basic: 25.0,
+};
 export default async function handler(req, res) {
   // 1. Browser Test Support
   if (req.method === "GET") {
@@ -38,7 +43,7 @@ export default async function handler(req, res) {
     // 4. Determine Tier (Matching your Frontend tiers: basic, premium, vip)
     let tier = "basic";
     const numericAmount = parseFloat(amount);
-    if (numericAmount >= 125) {
+    if (numericAmount >= 1) {
       tier = "vip";
     } else if (numericAmount >= 50) {
       tier = "premium";
