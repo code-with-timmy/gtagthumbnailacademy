@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -5,11 +6,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const TIER_PRICES = {
-  vip: 125.0,
-  premium: 50.0,
-  basic: 25.0,
-};
 export default async function handler(req, res) {
   // 1. Browser Test Support
   if (req.method === "GET") {
@@ -40,15 +36,30 @@ export default async function handler(req, res) {
 
     const { email, amount, kofi_transaction_id, currency, type } = payload;
 
+    const { data: plans, error: planError } = await supabase
+      .from("plan")
+      .select("id, price");
+
+    if (planError) throw planError;
+
+    // Convert array to a usable object { basic: 25, premium: 50, vip: 125 }
+    const TIER_PRICES = plans.reduce((acc, p) => {
+      acc[p.id] = parseFloat(p.price);
+      return acc;
+    }, {});
+
     // 4. Determine Tier (Matching your Frontend tiers: basic, premium, vip)
-    let tier = "basic";
+    let tier = "none";
     const numericAmount = parseFloat(amount);
-    if (numericAmount >= 1) {
-      tier = "vip";
-    } else if (numericAmount >= 50) {
-      tier = "premium";
-    } else {
-      tier = "basic";
+
+    // Check from highest to lowest
+    const sortedTiers = Object.entries(TIER_PRICES).sort((a, b) => b[1] - a[1]);
+
+    for (const [tierName, minPrice] of sortedTiers) {
+      if (numericAmount >= minPrice) {
+        tier = tierName;
+        break;
+      }
     }
 
     // 5. STEP ONE: Log the payment for the "Verify Now" button to find
