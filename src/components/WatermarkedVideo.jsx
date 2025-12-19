@@ -1,17 +1,22 @@
 import React, { useRef } from "react";
 
-export default function WatermarkedVideo({ videoUrl, className = "", onVideoEnd, height = "auto" }) {
+export default function WatermarkedVideo({
+  videoUrl,
+  className = "",
+  onVideoEnd,
+  height = "auto",
+}) {
   const videoRef = useRef(null);
 
   // Check if URL is a YouTube link and extract video ID
   const getYouTubeVideoId = (url) => {
     if (!url) return null;
-    
+
     const patterns = [
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\?\/]+)/,
-      /^([a-zA-Z0-9_-]{11})$/ // Direct video ID
+      /^([a-zA-Z0-9_-]{11})$/, // Direct video ID
     ];
-    
+
     for (const pattern of patterns) {
       const match = url.match(pattern);
       if (match) return match[1];
@@ -22,15 +27,17 @@ export default function WatermarkedVideo({ videoUrl, className = "", onVideoEnd,
   // Check if URL is an iframe-based video (Bunny.net, Vimeo, etc.)
   const isIframeVideo = (url) => {
     if (!url) return false;
-    return url.includes('iframe.mediadelivery.net') || 
-           url.includes('player.vimeo.com') ||
-           url.includes('screenpal.com') ||
-           url.includes('/embed/');
+    return (
+      url.includes("iframe.mediadelivery.net") ||
+      url.includes("player.vimeo.com") ||
+      url.includes("screenpal.com") ||
+      url.includes("/embed/")
+    );
   };
 
   // Convert ScreenPal watch URL to embed URL
   const getScreenPalEmbedUrl = (url) => {
-    if (!url || !url.includes('screenpal.com')) return url;
+    if (!url || !url.includes("screenpal.com")) return url;
     const match = url.match(/watch\/([a-zA-Z0-9]+)/);
     if (match) {
       return `https://screenpal.com/player/${match[1]}?width=100%&height=100%&ff=1`;
@@ -53,7 +60,7 @@ export default function WatermarkedVideo({ videoUrl, className = "", onVideoEnd,
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
-          style={{ border: 'none' }}
+          style={{ border: "none" }}
         />
       </div>
     );
@@ -69,7 +76,7 @@ export default function WatermarkedVideo({ videoUrl, className = "", onVideoEnd,
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
-          style={{ border: 'none' }}
+          style={{ border: "none" }}
         />
       </div>
     );
