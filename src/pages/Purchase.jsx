@@ -114,9 +114,8 @@ export default function Purchase() {
     //   base44.auth.redirectToLogin(window.location.pathname);
     //   return;
     // }
-    console.log(plan);
-    console.log(plan.kofiUrl);
-    window.open(plan.kofiUrl, "_blank");
+
+    window.open(plan.kofi_url, "_blank");
   };
 
   // TEMPORARY LOCAL MOCK
