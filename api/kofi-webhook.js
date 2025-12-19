@@ -7,23 +7,44 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // 1. Log every hit to help you debug in Vercel
+  console.log("--- Webhook Triggered ---");
+  console.log("Method:", req.method);
+  console.log("Content-Type:", req.headers["content-type"]);
+
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method not allowed" });
   }
 
   try {
-    // 1. Ko-fi sends data as a stringified JSON in a form field named 'data'
-    const payload = JSON.parse(req.body.data);
+    // 2. Parse the body. Ko-fi sends data as a string inside a 'data' field.
+    let payload;
 
-    // 2. Security Check: Verify the token
+    if (typeof req.body.data === "string") {
+      // Standard Ko-fi format
+      payload = JSON.parse(req.body.data);
+    } else if (typeof req.body === "string") {
+      // Backup for certain test tools
+      const parsedBody = JSON.parse(req.body);
+      payload =
+        typeof parsedBody.data === "string"
+          ? JSON.parse(parsedBody.data)
+          : parsedBody;
+    } else {
+      // If it's already an object
+      payload = req.body;
+    }
+
+    // 3. Security Check: Verify the Ko-fi Token
     if (payload.verification_token !== process.env.KOFI_VERIFICATION_TOKEN) {
+      console.error("Invalid Verification Token received.");
       return res.status(401).json({ message: "Invalid token" });
     }
 
-    const { email, amount, type, is_subscription_payment } = payload;
+    const { email, amount, type } = payload;
+    console.log(`Processing payment for: ${email} - Amount: ${amount}`);
 
-    // 3. Determine Tier based on amount or type
-    // Match these values to what you set in your Assets page logic
+    // 4. Determine Tier based on amount
     let tier = "basic";
     const numericAmount = parseFloat(amount);
 
@@ -35,23 +56,28 @@ export default async function handler(req, res) {
       tier = "basic";
     }
 
-    // 4. Update the user profile in Supabase
-    // We assume your 'profiles' table has an 'email' and 'tier' column
+    // 5. UPSERT the user profile
+    // This updates the tier if they exist, or creates a new row if they don't.
+    // 'email' must be a UNIQUE column in your profiles table for this to work.
     const { data, error } = await supabase
       .from("profiles")
-      .update({
-        tier: tier,
-        last_payment_date: new Date().toISOString(),
-        payment_provider: "kofi",
-      })
-      .eq("email", email);
+      .upsert(
+        {
+          email: email,
+          tier: tier,
+          last_payment_date: new Date().toISOString(),
+          payment_provider: "kofi",
+        },
+        { onConflict: "email" }
+      )
+      .select();
 
     if (error) throw error;
 
-    console.log(`Success: Updated ${email} to ${tier} tier.`);
+    console.log(`✅ Success: ${email} assigned to ${tier} tier.`);
     return res.status(200).json({ received: true });
   } catch (err) {
-    console.error("Webhook Error:", err.message);
+    console.error("❌ Webhook Error:", err.message);
     return res.status(500).json({ error: err.message });
   }
 }
