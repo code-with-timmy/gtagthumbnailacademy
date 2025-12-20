@@ -3,9 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 
 export function useUser() {
   const {
-    isPending,
     data: user,
-    fetchStatus,
+    status,
+    isFetching,
   } = useQuery({
     queryKey: ["user"],
     queryFn: getCurrentUser,
@@ -15,7 +15,7 @@ export function useUser() {
   const isAuthenticated = !!user?.id;
 
   return {
-    isPending: isPending || fetchStatus === "fetching",
+    isPending: status === "loading" || isFetching,
     user,
     isAuthenticated,
   };
