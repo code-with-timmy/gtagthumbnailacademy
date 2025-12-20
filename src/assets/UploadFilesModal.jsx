@@ -17,8 +17,6 @@ export default function UploadFilesModal({
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  if (!isOpen) return null;
-
   // ... (handleDrop and handleFileSelect stay the same)
 
   // ... inside UploadFilesModal ...
@@ -37,6 +35,7 @@ export default function UploadFilesModal({
     }
   }, []); // Keep this array empty!
 
+  if (!isOpen) return null;
   // 2. handleFileSelect doesn't need useCallback, just a regular function
   const handleFileSelect = (e) => {
     const selectedFiles = Array.from(e.target.files);
