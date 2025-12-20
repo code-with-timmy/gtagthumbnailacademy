@@ -44,9 +44,54 @@ export default function Assets() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      // ... (Your existing session and profile code)
+      // 1. Get Current Session
 
-      // 4. Fetch Folders, Files, and Storage Stats simultaneously
+      const {
+        data: { session },
+
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        navigate("/login");
+
+        return;
+      }
+
+      // 2. Fetch Profile (Subscription and Role)
+
+      const { data: profile, error: profileError } = await supabase
+
+        .from("profiles")
+
+        .select("*")
+
+        .eq("id", session.user.id)
+
+        .single();
+
+      if (profileError) throw profileError;
+
+      setUser(profile);
+
+      // 3. Simple Access Check
+
+      // Check if user has no tier and isn't an admin
+
+      if (
+        (!profile.subscription_tier || profile.subscription_tier === "none") &&
+        profile.role !== "admin"
+      ) {
+        navigate("/purchase");
+
+        return;
+      }
+
+      // Sync active tab with user's current tier
+
+      if (profile.subscription_tier) {
+        setActiveTier(profile.subscription_tier);
+      }
       const [foldersRes, filesRes] = await Promise.all([
         supabase
           .from("asset_folders")
