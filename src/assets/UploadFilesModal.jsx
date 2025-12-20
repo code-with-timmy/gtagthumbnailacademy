@@ -21,11 +21,43 @@ export default function UploadFilesModal({
 
   // ... (handleDrop and handleFileSelect stay the same)
 
+  // ... inside UploadFilesModal ...
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    // Use the functional update to ensure we have the latest state
+    setFiles((prev) => [...prev, ...droppedFiles]);
+  }, []);
+
+  const handleFileSelect = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    setFiles((prev) => [...prev, ...selectedFiles]);
+  };
+
+  const handleAddLink = () => {
+    if (linkUrl && linkTitle) {
+      setFiles((prev) => [
+        ...prev,
+        { isLink: true, url: linkUrl, title: linkTitle },
+      ]);
+      setLinkUrl("");
+      setLinkTitle("");
+    }
+  };
+
   const handleUpload = async () => {
+    if (files.length === 0) return;
     setIsLoading(true);
 
     try {
-      for (const item of files) {
+      // Capture the current files into a local variable
+      // This prevents the "write after end" if setFiles is called mid-loop
+      const filesToUpload = [...files];
+
+      for (const item of filesToUpload) {
         let finalUrl = "";
         let title = "";
 
@@ -33,19 +65,16 @@ export default function UploadFilesModal({
           finalUrl = item.url;
           title = item.title;
         } else {
-          // 1. Generate a unique file path
           const fileExt = item.name.split(".").pop();
-          const fileName = `${Math.random()}-${Date.now()}.${fileExt}`;
-          const filePath = `${tier}/${fileName}`; // Organizes storage by tier folders
+          const fileName = `${crypto.randomUUID()}-${Date.now()}.${fileExt}`;
+          const filePath = `${tier}/${fileName}`;
 
-          // 2. Upload to Supabase Storage
           const { data, error: uploadError } = await supabase.storage
-            .from("assets") // Make sure you created a bucket named 'assets'
+            .from("assets")
             .upload(filePath, item);
 
           if (uploadError) throw uploadError;
 
-          // 3. Get Public URL
           const {
             data: { publicUrl },
           } = supabase.storage.from("assets").getPublicUrl(filePath);
@@ -54,26 +83,25 @@ export default function UploadFilesModal({
           title = item.name;
         }
 
-        // 4. Save to Database via the onSubmit prop (which handles the INSERT)
+        // Save to Database
         await onSubmit({
           title: title,
           file_url: finalUrl,
-          thumbnail_url: finalUrl, // You can swap this for a generic icon URL if it's not an image
+          thumbnail_url: finalUrl,
           tier,
           folder_id: folderId,
         });
       }
 
-      setFiles([]);
+      setFiles([]); // Clear files ONLY after loop finishes
       onClose();
     } catch (error) {
-      console.error("Upload failed:", error.message);
+      console.error("Upload failed:", error);
       alert("Error uploading: " + error.message);
     } finally {
       setIsLoading(false);
     }
   };
-
   // ... (Rest of your JSX remains exactly the same)
 
   return (
