@@ -5,16 +5,16 @@ import { Loader2 } from "lucide-react";
 
 function ProtectedRouteForCourse() {
   const navigate = useNavigate();
-  const { user, isLoading } = useUser();
+  const { user, isPending } = useUser();
 
   useEffect(() => {
     // If loading is finished, user is logged in, but has NO tier
-    if (!isLoading && !user?.subscription_tier) {
+    if (!isPending && !user?.subscription_tier) {
       navigate("/purchase", { replace: true });
     }
-  }, [isLoading, user, navigate]);
+  }, [isPending, user, navigate]);
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-10 h-10 text-sky-500 animate-spin" />
