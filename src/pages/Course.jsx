@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import supabase from "@/supabase"; // Ensure this points to your supabase client
+import supabase from "@/supabase";
 import { Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TierTabs from "@/course/TierTabs";
@@ -23,7 +23,7 @@ export default function Course() {
     try {
       setIsLoading(true);
 
-      // 1. Get Current Session
+      // 1. Get Session
       const {
         data: { session },
         error: sessionError,
@@ -33,7 +33,7 @@ export default function Course() {
         return;
       }
 
-      // 2. Fetch Profile from Supabase
+      // 2. Fetch Profile
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("*")
@@ -43,21 +43,23 @@ export default function Course() {
       if (profileError) throw profileError;
       setUser(profile);
 
-      // 3. Access Check (Admins bypass the purchase requirement)
+      // 3. Simple Access Logic
       const isAdmin = profile.role === "admin";
-      if (!profile.has_course_access && !isAdmin) {
+      const hasPlan =
+        profile.subscription_tier && profile.subscription_tier !== "none";
+
+      // Redirect if not admin AND has no plan
+      if (!isAdmin && !hasPlan) {
         navigate("/purchase");
         return;
       }
 
-      // 4. Set Initial Active Tier
-      if (profile.subscription_tier && profile.subscription_tier !== "none") {
-        setActiveTier(profile.subscription_tier);
-      } else if (isAdmin) {
-        setActiveTier("basic");
-      }
+      // 4. Set Tier View
+      // If user has a plan, show that plan's content. If admin has no plan, default to 'basic'.
+      const initialTier = hasPlan ? profile.subscription_tier : "basic";
+      setActiveTier(initialTier);
 
-      // 5. Fetch Lessons from 'lessons' table
+      // 5. Fetch Lessons
       const { data: lessonsData, error: lessonsError } = await supabase
         .from("lessons")
         .select("*")
@@ -67,12 +69,10 @@ export default function Course() {
       if (lessonsError) throw lessonsError;
       setLessons(lessonsData || []);
 
-      // 6. Select first lesson based on tier
-      const initialTier = profile.subscription_tier || "basic";
+      // 6. Select First Lesson for the active tier
       const tierLessons = (lessonsData || []).filter(
         (l) => l.required_tier === initialTier
       );
-
       if (tierLessons.length > 0) {
         setSelectedLesson(tierLessons[0]);
       }
@@ -87,13 +87,11 @@ export default function Course() {
 
   const canAccessTier = (tier) => {
     if (isAdmin) return true;
-    if (!user?.subscription_tier) return false;
+    const currentTier = user?.subscription_tier;
+    if (!currentTier || currentTier === "none") return false;
 
     const tierOrder = { basic: 1, premium: 2, vip: 3 };
-    const userRank = tierOrder[user.subscription_tier] || 0;
-    const targetRank = tierOrder[tier] || 0;
-
-    return userRank >= targetRank;
+    return (tierOrder[currentTier] || 0) >= (tierOrder[tier] || 0);
   };
 
   const handleTierChange = (tier) => {
@@ -104,8 +102,6 @@ export default function Course() {
     }
   };
 
-  const filteredLessons = lessons.filter((l) => l.required_tier === activeTier);
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -114,8 +110,11 @@ export default function Course() {
     );
   }
 
-  // Final Safety Check for UI
-  if (!user?.subscription_tier && !isAdmin) {
+  // Final Safety Check: If user is not admin and tier is null/none, show Lock
+  const hasAccess =
+    isAdmin || (user?.subscription_tier && user?.subscription_tier !== "none");
+
+  if (!hasAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="glass-card rounded-2xl p-8 text-center max-w-md bg-white/5 border border-white/10">
@@ -160,7 +159,7 @@ export default function Course() {
           </div>
           <div className="lg:col-span-1">
             <LessonList
-              lessons={filteredLessons}
+              lessons={lessons.filter((l) => l.required_tier === activeTier)}
               activeTier={activeTier}
               selectedLesson={selectedLesson}
               onSelectLesson={setSelectedLesson}
