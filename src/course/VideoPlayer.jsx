@@ -15,39 +15,72 @@ export default function VideoPlayer({ lesson, user }) {
     );
   }
 
+  const userIdentifier = user?.email || user?.full_name || "Authorized User";
+
   return (
-    /* Reduced padding on mobile (p-4) vs desktop (p-8) */
     <div className="glass-card rounded-2xl md:rounded-3xl p-4 md:p-8 space-y-6 md:space-y-8 border border-white/10 shadow-2xl">
+      {/* 1. CSS for the Dynamic Watermark Animation */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        @keyframes watermark-move {
+          0% { top: 10%; left: 10%; }
+          25% { top: 10%; left: 70%; }
+          50% { top: 80%; left: 70%; }
+          75% { top: 80%; left: 10%; }
+          100% { top: 10%; left: 10%; }
+        }
+        .animate-watermark {
+          position: absolute;
+          animation: watermark-move 20s linear infinite;
+          white-space: nowrap;
+          pointer-events: none;
+          user-select: none;
+        }
+      `,
+        }}
+      />
+
       {/* Title & Description */}
       <div>
-        <h1 className="coolvetica text-2xl md:text-4xl font-bold mb-2 md:mb-3 tracking-[0.08em] leading-tight">
+        <h1 className="coolvetica text-2xl md:text-4xl font-bold mb-2 md:mb-3 tracking-[0.08em] leading-tight uppercase">
           {lesson.title}
         </h1>
         {lesson.description && (
-          <p className="text-gray-400 text-sm md:text-lg leading-relaxed">
+          <p className="text-gray-400 text-sm md:text-lg leading-relaxed max-w-3xl">
             {lesson.description}
           </p>
         )}
       </div>
 
-      {/* Video Container - Aspect Ratio ensures it never breaks layout */}
-      <div className="relative group">
+      {/* Video Container */}
+      <div className="relative group overflow-hidden rounded-xl md:rounded-2xl ring-1 md:ring-2 ring-white/10 shadow-2xl">
         {lesson.video_url ? (
-          <div className="aspect-video bg-black rounded-xl md:rounded-2xl overflow-hidden shadow-2xl ring-1 md:ring-2 ring-white/10">
+          <div className="aspect-video bg-black relative">
+            {/* 2. Floating Watermark Overlay */}
+            <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
+              <div className="animate-watermark text-white/20 text-[10px] md:text-xs font-mono bg-black/20 px-2 py-1 rounded">
+                {userIdentifier} • {new Date().toLocaleDateString()} • IP
+                PROTECTED
+              </div>
+            </div>
+
             <video
-              key={lesson.video_url} // Forces re-render when video changes
+              key={lesson.video_url}
               controls
-              className="w-full h-full"
+              className="w-full h-full object-contain"
               src={lesson.video_url}
-              controlsList="nodownload"
+              /* 3. Anti-Download Props */
+              controlsList="nodownload noplaybackrate"
+              disablePictureInPicture
               onContextMenu={(e) => e.preventDefault()}
-              playsInline // Important for mobile browsers
+              playsInline
             >
               Your browser does not support the video tag.
             </video>
           </div>
         ) : (
-          <div className="aspect-video bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl md:rounded-2xl flex items-center justify-center border border-gray-700">
+          <div className="aspect-video bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center border border-gray-700">
             <p className="text-gray-500 text-sm md:text-lg font-medium">
               Video not available
             </p>
@@ -66,11 +99,15 @@ export default function VideoPlayer({ lesson, user }) {
               PROTECTED CONTENT
             </h3>
             <p className="text-xs md:text-sm text-yellow-100/80 leading-relaxed italic">
-              Licensed to: {user?.full_name || user?.email || "Authorized User"}
+              Licensed to:{" "}
+              <span className="text-yellow-400 font-bold">
+                {userIdentifier}
+              </span>
             </p>
             <p className="hidden md:block text-sm text-yellow-100/70 mt-2 leading-relaxed">
-              Unauthorized sharing or recording of this dynamic content is
-              strictly prohibited and may result in legal action.
+              This session is being monitored. Sharing, recording, or
+              distributing this content is a violation of the Terms of Service
+              and will result in permanent account termination and legal action.
             </p>
           </div>
         </div>
