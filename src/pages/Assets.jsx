@@ -31,6 +31,10 @@ export default function Assets() {
   const [isEditFolderOpen, setIsEditFolderOpen] = useState(false);
   const [editingFile, setEditingFile] = useState(null);
   const [isEditFileOpen, setIsEditFileOpen] = useState(false);
+  const [storageStats, setStorageStats] = useState({
+    used: 0,
+    limit: 5368709120,
+  }); // 5GB in bytes
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,43 +44,9 @@ export default function Assets() {
   const loadData = async () => {
     try {
       setIsLoading(true);
+      // ... (Your existing session and profile code)
 
-      // 1. Get Current Session
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-      if (sessionError || !session) {
-        navigate("/login");
-        return;
-      }
-
-      // 2. Fetch Profile (Subscription and Role)
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-
-      if (profileError) throw profileError;
-      setUser(profile);
-
-      // 3. Simple Access Check
-      // Check if user has no tier and isn't an admin
-      if (
-        (!profile.subscription_tier || profile.subscription_tier === "none") &&
-        profile.role !== "admin"
-      ) {
-        navigate("/purchase");
-        return;
-      }
-
-      // Sync active tab with user's current tier
-      if (profile.subscription_tier) {
-        setActiveTier(profile.subscription_tier);
-      }
-
-      // 4. Fetch Folders and Files from Supabase
+      // 4. Fetch Folders, Files, and Storage Stats simultaneously
       const [foldersRes, filesRes] = await Promise.all([
         supabase
           .from("asset_folders")
@@ -86,6 +56,7 @@ export default function Assets() {
           .from("asset_files")
           .select("*")
           .order("created_at", { ascending: false }),
+        calculateStorage(), // Add this here!
       ]);
 
       if (foldersRes.error) throw foldersRes.error;
@@ -108,6 +79,21 @@ export default function Assets() {
     return userRank >= targetRank;
   };
 
+  const calculateStorage = async () => {
+    // This fetches metadata for all objects in the 'assets' bucket
+    const { data, error } = await supabase.storage.from("assets").list("", {
+      limit: 1000,
+      offset: 0,
+    });
+
+    if (!error && data) {
+      const totalBytes = data.reduce(
+        (acc, file) => acc + (file.metadata?.size || 0),
+        0
+      );
+      setStorageStats((prev) => ({ ...prev, used: totalBytes }));
+    }
+  };
   const handleTierChange = (tier) => {
     if (canAccessTier(tier)) {
       setActiveTier(tier);
@@ -139,13 +125,29 @@ export default function Assets() {
   };
 
   const handleDeleteFolder = async (folderId) => {
-    const { error } = await supabase
-      .from("asset_folders")
-      .delete()
-      .eq("id", folderId);
-    if (!error) loadData();
-  };
+    const confirmDelete = window.confirm("Delete folder and all files inside?");
+    if (!confirmDelete) return;
 
+    try {
+      // 1. Find all files in this folder to clean up storage
+      const filesToDelete = files.filter((f) => f.folder_id === folderId);
+
+      if (filesToDelete.length > 0) {
+        const paths = filesToDelete.map((f) => f.file_url.split("/assets/")[1]);
+        await supabase.storage.from("assets").remove(paths);
+      }
+
+      // 2. Delete the folder (Database RLS/Foreign Keys handle the file row deletion)
+      const { error } = await supabase
+        .from("asset_folders")
+        .delete()
+        .eq("id", folderId);
+
+      if (!error) loadData();
+    } catch (error) {
+      console.error("Folder deletion failed:", error);
+    }
+  };
   const handleSaveFile = async (data) => {
     const { error } = await supabase
       .from("asset_files")
@@ -158,12 +160,36 @@ export default function Assets() {
     }
   };
 
-  const handleDeleteFile = async (fileId) => {
-    const { error } = await supabase
-      .from("asset_files")
-      .delete()
-      .eq("id", fileId);
-    if (!error) loadData();
+  const handleDeleteFile = async (file) => {
+    try {
+      // 1. Extract the storage path from the URL
+      // This assumes your URL looks like: .../storage/v1/object/public/assets/tier/filename.ext
+      const urlParts = file.file_url.split("/assets/");
+      const storagePath = urlParts[1];
+
+      if (storagePath) {
+        // 2. Delete from Supabase Storage
+        const { error: storageError } = await supabase.storage
+          .from("assets")
+          .remove([storagePath]);
+
+        if (storageError)
+          console.error("Storage cleanup failed:", storageError);
+      }
+
+      // 3. Delete from Database
+      const { error: dbError } = await supabase
+        .from("asset_files")
+        .delete()
+        .eq("id", file.id);
+
+      if (dbError) throw dbError;
+
+      loadData();
+    } catch (error) {
+      console.error("Error deleting asset:", error.message);
+      alert("Failed to delete asset fully.");
+    }
   };
 
   const handleDownload = (file) => {
@@ -187,10 +213,45 @@ export default function Assets() {
     );
   }
 
+  const usedMB = (storageStats.used / 1024 / 1024).toFixed(1);
+  const limitMB = (storageStats.limit / 1024 / 1024).toFixed(0);
+  const percentage = Math.min(
+    (storageStats.used / storageStats.limit) * 100,
+    100
+  );
+
+  // JSX to place at the top of your page
+
   // Same JSX structure as your original code
   return (
     <div className="min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4">
+        {isAdmin && (
+          <div className="mb-6 p-4 glass-card rounded-xl border border-white/5">
+            <div className="flex justify-between items-end mb-2">
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wider">
+                  Storage Usage
+                </p>
+                <p className="text-sm font-bold text-white">
+                  {usedMB} MB / {limitMB} MB
+                </p>
+              </div>
+              <span className="text-xs text-gray-500">
+                {percentage.toFixed(1)}%
+              </span>
+            </div>
+            <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-500 ${
+                  percentage > 80 ? "bg-red-500" : "bg-blue-500"
+                }`}
+                style={{ width: `${percentage}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         <AssetTierTabs
           activeTier={activeTier}
           setActiveTier={handleTierChange}
@@ -273,7 +334,7 @@ export default function Assets() {
                     setEditingFile(file);
                     setIsEditFileOpen(true);
                   }}
-                  onDelete={() => handleDeleteFile(file.id)}
+                  onDelete={() => handleDeleteFile(file)} // Pass the whole file object here
                 />
               ))}
             </div>
