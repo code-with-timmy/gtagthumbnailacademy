@@ -1,19 +1,17 @@
-/* eslint-disable react/prop-types */
 import { useUser } from "@/pages/Authentication/useUser";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import FullPageLoader from "./FullPageLoader";
 
 export default function ProtectedRoute({ children }) {
-  const { isPending, isAuthenticated } = useUser();
+  const { isLoading, isAuthenticated } = useUser();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isPending && !isAuthenticated) navigate("/login");
-  }, [isPending, isAuthenticated, navigate]);
+    if (!isLoading && !isAuthenticated) navigate("/login");
+  }, [isLoading, isAuthenticated, navigate]);
 
-  if (isPending) return <FullPageLoader />; // Loading spinner while session restores
+  if (isLoading) return <FullPageLoader />; // Your spinner
 
-  // Render children only if authenticated
   return isAuthenticated ? children : null;
 }
