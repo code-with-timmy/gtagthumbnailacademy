@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { X, Upload, Link2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/api/supabaseClient"; // Ensure this is your configured supabase client
+import supabase from "@/supabase"; // Ensure this is your configured supabase client
 
 export default function UploadFilesModal({
   isOpen,
