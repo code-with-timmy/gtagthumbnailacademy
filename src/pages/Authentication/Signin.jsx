@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { useEffect } from "react";
 import { useUser } from "./useUser";
 import FullPageLoader from "@/components/ui/FullPageLoader";
+import { useGoogleLogin } from "./useGoogleLogin";
 
 function Signin() {
   const { register, handleSubmit } = useForm({
@@ -14,6 +15,8 @@ function Signin() {
   });
 
   const { login, isPending } = useLogin();
+
+  const { mutate: googleLogin, isPending: isSigning } = useGoogleLogin();
 
   function onSubmit(data) {
     login(data);
@@ -66,7 +69,11 @@ function Signin() {
               <div className="w-full">
                 <div className="space-y-3">
                   {/* Google sign-in */}
-                  <button className="w-full flex items-center justify-center gap-3 bg-white text-slate-700 px-5 py-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm transition-all duration-200 font-medium text-[16px] group">
+                  <button
+                    onClick={googleLogin}
+                    disabled={isSigning}
+                    className="w-full flex items-center justify-center gap-3 bg-white text-slate-700 px-5 py-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm transition-all duration-200 font-medium text-[16px] group"
+                  >
                     <div className="transition-transform duration-200 -ml-4">
                       <svg
                         className="h-5 w-5"
