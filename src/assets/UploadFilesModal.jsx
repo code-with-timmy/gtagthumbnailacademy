@@ -45,11 +45,6 @@ export default function UploadFilesModal({
     }
   };
 
-  const handleFileSelect = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    setFiles((prev) => [...prev, ...selectedFiles]);
-  };
-
   const handleAddLink = () => {
     if (linkUrl && linkTitle) {
       setFiles((prev) => [
