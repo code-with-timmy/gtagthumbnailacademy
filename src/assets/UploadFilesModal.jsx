@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { useState, useCallback } from "react";
 import { X, Upload, Link2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -95,7 +96,7 @@ export default function UploadFilesModal({
           title: title,
           file_url: finalUrl,
           thumbnail_url: finalUrl,
-          tier,
+          tier: tier.toLowerCase(), // Force lowercase to match filter
           folder_id: folderId,
         });
       }
