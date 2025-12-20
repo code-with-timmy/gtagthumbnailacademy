@@ -2,11 +2,7 @@ import { getCurrentUser } from "@/api/apiAuth";
 import { useQuery } from "@tanstack/react-query";
 
 export function useUser() {
-  const {
-    data: user,
-    status,
-    isFetching,
-  } = useQuery({
+  const { data: user, isPending } = useQuery({
     queryKey: ["user"],
     queryFn: getCurrentUser,
   });
@@ -15,7 +11,7 @@ export function useUser() {
   const isAuthenticated = !!user?.id;
 
   return {
-    isPending: status === "loading" || isFetching,
+    isPending,
     user,
     isAuthenticated,
   };

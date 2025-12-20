@@ -1,17 +1,21 @@
 import { useUser } from "@/pages/Authentication/useUser";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom"; // Added useLocation
 import FullPageLoader from "./FullPageLoader";
 
 export default function ProtectedRoute({ children }) {
-  const { isLoading, isAuthenticated } = useUser();
+  const { isPending, isAuthenticated } = useUser();
   const navigate = useNavigate();
+  const location = useLocation(); // Get current URL
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) navigate("/login");
-  }, [isLoading, isAuthenticated, navigate]);
+    if (!isPending && !isAuthenticated) {
+      // Pass the current location to the login page state
+      navigate("/login", { state: { from: location } });
+    }
+  }, [isPending, isAuthenticated, navigate, location]);
 
-  if (isLoading) return <FullPageLoader />; // Your spinner
+  if (isPending) return <FullPageLoader />;
 
   return isAuthenticated ? children : null;
 }
