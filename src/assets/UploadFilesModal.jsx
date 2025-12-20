@@ -24,13 +24,26 @@ export default function UploadFilesModal({
   // ... inside UploadFilesModal ...
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
+  // 1. handleDrop should NOT have [files] in the dependency array
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     setIsDragging(false);
-    const droppedFiles = Array.from(e.dataTransfer.files);
-    // Use the functional update to ensure we have the latest state
-    setFiles((prev) => [...prev, ...droppedFiles]);
-  }, []);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const droppedFiles = Array.from(e.dataTransfer.files);
+      // Use the functional update (prev => ...) so we don't need 'files' as a dependency
+      setFiles((prev) => [...prev, ...droppedFiles]);
+      e.dataTransfer.clearData();
+    }
+  }, []); // Keep this array empty!
+
+  // 2. handleFileSelect doesn't need useCallback, just a regular function
+  const handleFileSelect = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    if (selectedFiles.length > 0) {
+      setFiles((prev) => [...prev, ...selectedFiles]);
+    }
+  };
 
   const handleFileSelect = (e) => {
     const selectedFiles = Array.from(e.target.files);
