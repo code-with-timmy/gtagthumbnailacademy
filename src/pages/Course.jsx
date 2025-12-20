@@ -115,7 +115,7 @@ export default function Course() {
   }
 
   // Final Safety Check for UI
-  if (!user?.has_course_access && !isAdmin) {
+  if (!user?.subscription_tier && !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="glass-card rounded-2xl p-8 text-center max-w-md bg-white/5 border border-white/10">
