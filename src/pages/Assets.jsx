@@ -237,8 +237,38 @@ export default function Assets() {
     }
   };
 
-  const handleDownload = (file) => {
-    window.open(file.file_url, "_blank");
+  const handleDownload = async (file) => {
+    try {
+      // 1. Fetch the data from the URL
+      const response = await fetch(file.file_url);
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      // 2. Convert to a Blob
+      const blob = await response.blob();
+
+      // 3. Create a temporary local URL for the blob
+      const url = window.URL.createObjectURL(blob);
+
+      // 4. Create a hidden anchor element to trigger the download
+      const link = document.createElement("a");
+      link.href = url;
+
+      // 5. Use the file name from your database or extract from URL
+      const fileName = file.name || file.file_url.split("/").pop();
+      link.setAttribute("download", fileName);
+
+      // 6. Append, click, and clean up
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // 7. Free up memory
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download failed:", error);
+      // Fallback: Open in new tab if the silent download fails
+      window.open(file.file_url, "_blank");
+    }
   };
 
   // --- Filter Logic ---

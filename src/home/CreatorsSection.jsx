@@ -36,15 +36,6 @@ const creators = [
     name: "CubCub11",
   },
 ];
-// const creators = [
-//   { name: 'Jmancurly', img: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69435cc8e3d996630f3c64bb/a0afb9f2f_00d8aa66b_channels4_profile25.jpg' },
-//   { name: 'Be Prepared', img: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69435cc8e3d996630f3c64bb/7c9cbc297_38ac0d8f7_channels4_profile24.jpg' },
-//   { name: 'Erik1515', img: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69435cc8e3d996630f3c64bb/5baadcd2b_92fface43_channels4_profile28.jpg' },
-//   { name: 'H4kpy', img: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69435cc8e3d996630f3c64bb/5c50fe528_755dfe1ca_channels4_profile23.jpg' },
-//   { name: 'VMT', img: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69435cc8e3d996630f3c64bb/f9fd5faac_037593266_channels4_profile22.jpg' },
-//   { name: 'FizzFizz', img: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69435cc8e3d996630f3c64bb/2d9884ae7_b045e681b_channels4_profile27.jpg' },
-//   { name: 'CubCub11', img: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69435cc8e3d996630f3c64bb/41c25e75f_c847fc0c1_channels4_profile26.jpg' },
-// ];
 
 export default function CreatorsSection() {
   const doubledCreators = [...creators, ...creators, ...creators];
