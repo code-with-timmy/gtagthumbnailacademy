@@ -13,29 +13,16 @@ import {
   X,
   LogIn,
   LogOut,
+  UploadIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLogout } from "@/pages/Authentication/useLogout";
+import { useUser } from "@/pages/Authentication/useUser";
 
 function AppLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, isLoading: isLoadingUser } = useUser();
   const { logout, isLoading } = useLogout();
-
-  // useEffect(() => {
-  //   const loadUser = async () => {
-  //     try {
-  //       const isAuth = await base44.auth.isAuthenticated();
-  //       if (isAuth) {
-  //         const userData = await base44.auth.me();
-  //         setUser(userData);
-  //       }
-  //     } catch (e) {
-  //       console.log('Not authenticated');
-  //     }
-  //     setIsLoading(false);
-  //   };
-  //   loadUser();
-  // }, []);
 
   const navItems = [
     { name: "Home", page: "/home", icon: Home },
@@ -43,18 +30,7 @@ function AppLayout() {
     { name: "Assets", page: "/assets", icon: Download },
   ];
 
-  // if (user?.role === "admin") {
-  //   navItems.push({ name: "Upload", page: "Upload", icon: Upload });
-  // }
-
-  const handleLogin = () => {
-    // base44.auth.redirectToLogin(window.location.href);
-  };
-
-  const handleLogout = () => {
-    // base44.auth.logout();
-  };
-
+  const isAdmin = user?.role === "admin";
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white">
       <style>{`
@@ -148,6 +124,16 @@ function AppLayout() {
                 </NavLink>
               ))}
 
+              {isAdmin && (
+                <Link
+                  to="/upload"
+                  variant="ghost"
+                  className="ml-2 text-gray-300 hover:text-white hover:bg-white/10"
+                >
+                  <UploadIcon className="w-4 h-4 mr-2" />
+                  Upload
+                </Link>
+              )}
               <Button
                 onClick={logout}
                 variant="ghost"
@@ -192,6 +178,16 @@ function AppLayout() {
                 {item.name}
               </NavLink>
             ))}
+            {isAdmin && (
+              <Link
+                to="/upload"
+                variant="ghost"
+                className="ml-2 text-gray-300 hover:text-white hover:bg-white/10"
+              >
+                <UploadIcon className="w-4 h-4 mr-2" />
+                Upload
+              </Link>
+            )}
             <button
               onClick={logout}
               className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-white/5 w-full"
