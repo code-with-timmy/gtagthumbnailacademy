@@ -62,14 +62,19 @@ export default async function handler(req, res) {
       }
     }
 
+    let isCancellation = false;
+    if (type === "SubscriptionCanceled" || type === "Refund") {
+      tier = "none"; // Reset tier to none
+      isCancellation = true;
+    }
+
     // 5. STEP ONE: Log the payment for the "Verify Now" button to find
     const { error: paymentError } = await supabase.from("payments").upsert(
       {
         transaction_id: kofi_transaction_id,
         kofi_email: email,
-        amount: numericAmount,
-        currency: currency,
-        tier: tier,
+        amount: isCancellation ? 0 : numericAmount, // Set amount to 0 on cancel
+        tier: tier, // This will be 'none' if it was a cancellation
         payment_type: type,
         raw_payload: payload,
       },
@@ -82,9 +87,10 @@ export default async function handler(req, res) {
     const { data, error: profileError } = await supabase
       .from("profiles")
       .update({
-        subscription_tier: tier, // Matches your frontend 'subscription_tier'
-        kofi_email: email, // Matches your frontend 'kofi_email'
-        last_payment_date: new Date().toISOString(),
+        subscription_tier: tier,
+        kofi_email: email,
+        // If it's a cancellation, maybe clear the last payment date or set an expiry
+        last_payment_date: isCancellation ? null : new Date().toISOString(),
       })
       .eq("email", email)
       .select();

@@ -64,7 +64,7 @@ export async function signInWithGoogle() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: "https://gtagthumbnailacademy.vercel.app/", // redirect after login
+      redirectTo: "https://www.gtagthumbnailacademy.com/", // redirect after login
     },
   });
   if (error) throw error;
