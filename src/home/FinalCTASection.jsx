@@ -5,7 +5,7 @@ import { Play } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
-export default function FinalCTASection() {
+export default function FinalCTASection({ handleAccessCourse }) {
   return (
     <section className="py-20 relative">
       {/* Background Gradient */}
@@ -29,6 +29,7 @@ export default function FinalCTASection() {
         >
           <Link to="/purchase">
             <Button
+              onClick={handleAccessCourse}
               size="lg"
               className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-10 py-6 text-lg rounded-xl glow-blue"
             >
