@@ -50,9 +50,7 @@ export default function CreatorsSection() {
         .animate-scroll {
           animation: scroll 30s linear infinite;
         }
-        .animate-scroll:hover {
-          animation-play-state: paused;
-        }
+       
       `}</style>
 
       <div className="max-w-7xl mx-auto px-4">
