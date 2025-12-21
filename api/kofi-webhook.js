@@ -36,45 +36,50 @@ export default async function handler(req, res) {
 
     const { email, amount, kofi_transaction_id, currency, type } = payload;
 
-    const { data: plans, error: planError } = await supabase
-      .from("plans")
-      .select("id, price");
+    // 4. Identify if this is a Revocation Event (Immediate Access Loss)
+    const isRevokeEvent = [
+      "SubscriptionCanceled",
+      "Refund",
+      "Unsubscription",
+    ].includes(type);
 
-    if (planError) throw planError;
-
-    // Convert array to a usable object { basic: 25, premium: 50, vip: 125 }
-    const TIER_PRICES = plans.reduce((acc, p) => {
-      acc[p.id] = parseFloat(p.price);
-      return acc;
-    }, {});
-
-    // 4. Determine Tier (Matching your Frontend tiers: basic, premium, vip)
     let tier = "none";
-    const numericAmount = parseFloat(amount);
 
-    // Check from highest to lowest
-    const sortedTiers = Object.entries(TIER_PRICES).sort((a, b) => b[1] - a[1]);
+    // Only calculate tier if it's NOT a cancellation
+    if (!isRevokeEvent) {
+      const { data: plans, error: planError } = await supabase
+        .from("plans")
+        .select("id, price");
 
-    for (const [tierName, minPrice] of sortedTiers) {
-      if (numericAmount >= minPrice) {
-        tier = tierName;
-        break;
+      if (planError) throw planError;
+
+      const TIER_PRICES = plans.reduce((acc, p) => {
+        acc[p.id] = parseFloat(p.price);
+        return acc;
+      }, {});
+
+      const numericAmount = parseFloat(amount);
+      const sortedTiers = Object.entries(TIER_PRICES).sort(
+        (a, b) => b[1] - a[1]
+      );
+
+      for (const [tierName, minPrice] of sortedTiers) {
+        if (numericAmount >= minPrice) {
+          tier = tierName;
+          break;
+        }
       }
     }
 
-    let isCancellation = false;
-    if (type === "SubscriptionCanceled" || type === "Refund") {
-      tier = "none"; // Reset tier to none
-      isCancellation = true;
-    }
-
-    // 5. STEP ONE: Log the payment for the "Verify Now" button to find
+    // 5. STEP ONE: Log the activity in payments table
+    // We use upsert so we don't get duplicate errors on retries
     const { error: paymentError } = await supabase.from("payments").upsert(
       {
         transaction_id: kofi_transaction_id,
         kofi_email: email,
-        amount: isCancellation ? 0 : numericAmount, // Set amount to 0 on cancel
-        tier: tier, // This will be 'none' if it was a cancellation
+        amount: isRevokeEvent ? 0 : parseFloat(amount),
+        currency: currency,
+        tier: tier,
         payment_type: type,
         raw_payload: payload,
       },
@@ -83,14 +88,14 @@ export default async function handler(req, res) {
 
     if (paymentError) throw paymentError;
 
-    // 6. STEP TWO: Attempt to update the user profile immediately
+    // 6. STEP TWO: Update the user profile
+    // If it's a revoke event, tier becomes 'none' and date becomes null
     const { data, error: profileError } = await supabase
       .from("profiles")
       .update({
         subscription_tier: tier,
         kofi_email: email,
-        // If it's a cancellation, maybe clear the last payment date or set an expiry
-        last_payment_date: isCancellation ? null : new Date().toISOString(),
+        last_payment_date: isRevokeEvent ? null : new Date().toISOString(),
       })
       .eq("email", email)
       .select();
@@ -99,13 +104,21 @@ export default async function handler(req, res) {
 
     // 7. Response
     if (data.length === 0) {
-      console.log(`Payment logged. No profile found for ${email} yet.`);
+      console.log(
+        `⚠️ User record not found for ${email}. Payment logged for manual verification.`
+      );
       return res
         .status(200)
-        .json({ message: "Payment logged, user must verify manually." });
+        .json({
+          message: "Payment logged. No profile found to update automatically.",
+        });
     }
 
-    console.log(`✅ Success: Automatically updated ${email} to ${tier}.`);
+    const actionMsg = isRevokeEvent
+      ? "REVOKED access for"
+      : "UPDATED access to " + tier + " for";
+    console.log(`✅ Success: ${actionMsg} ${email}.`);
+
     return res.status(200).json({ received: true });
   } catch (err) {
     console.error("❌ Webhook Error:", err.message);
