@@ -1,11 +1,24 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Play, Check, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import TermsOfServiceModal from "@/components/TermsOfServiceModal";
+import { use } from "react";
 
 export default function HeroSection() {
+  const navigate = useNavigate();
+  const [showTerms, setShowTerms] = useState(false);
+
+  const handleAccessCourse = () => {
+    setShowTerms(true);
+  };
+
+  const handleAcceptTerms = () => {
+    setShowTerms(false);
+    navigate("/purchase");
+  };
   return (
     <section className="relative py-24 md:py-36 overflow-hidden">
       {/* Background Effects */}
@@ -54,15 +67,13 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          <Link to="/purchase">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-14 py-9 text-2xl md:text-3xl rounded-2xl glow-blue"
-            >
-              <Play className="w-7 h-7 md:w-9 md:h-9 mr-3 fill-current" />
-              Access Course Now
-            </Button>
-          </Link>
+          <button
+            onClick={handleAccessCourse}
+            className="bg-gradient-to-r h-10  from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-14 py-9 text-2xl md:text-3xl rounded-2xl glow-blue"
+          >
+            <Play className="w-7 h-7 md:w-9 md:h-9 mr-3 fill-current" />
+            Access Course Now
+          </button>
         </motion.div>
 
         {/* Checklist */}
@@ -84,6 +95,12 @@ export default function HeroSection() {
             <Check className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
             Protected videos
           </div>
+
+          <TermsOfServiceModal
+            isOpen={showTerms}
+            onClose={() => setShowTerms(false)}
+            onAccept={handleAcceptTerms}
+          />
         </motion.div>
       </div>
     </section>
