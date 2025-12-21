@@ -126,6 +126,8 @@ export default function Course() {
         <div className="text-center py-8 text-slate-500">No lessons yet</div>
       );
 
+    // Inside renderLessonsList function, locate the return map:
+
     return (
       <div className="space-y-2">
         {filtered.map((lesson, index) => {
@@ -140,8 +142,8 @@ export default function Course() {
                 isSelected
                   ? `bg-gradient-to-r ${config.color} text-white shadow-lg scale-[1.02]`
                   : isAccessible
-                  ? "bg-slate-800/50 hover:bg-slate-800 border border-slate-700"
-                  : "bg-slate-800/30 opacity-60 cursor-not-allowed"
+                  ? "bg-slate-800/50 hover:bg-slate-800 border border-slate-700 text-white" // Added text-white here
+                  : "bg-slate-800/30 opacity-60 cursor-not-allowed text-slate-400"
               }`}
             >
               <div className="flex items-start gap-3">
@@ -151,22 +153,25 @@ export default function Course() {
                   }`}
                 >
                   {!isAccessible ? (
-                    <Lock className="w-4 h-4" />
+                    <Lock className="w-4 h-4 text-white" /> // Added text-white
                   ) : isSelected ? (
-                    <CheckCircle2 className="w-5 h-5" />
+                    <CheckCircle2 className="w-5 h-5 text-white" /> // Added text-white
                   ) : (
-                    <span>{index + 1}</span>
+                    <span className="text-white">{index + 1}</span> // Added text-white
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate">{lesson.title}</h3>
-                  <p className="text-xs opacity-70">
+                  {/* Changed h3 to text-white and p to text-white/70 */}
+                  <h3 className="font-semibold truncate text-white">
+                    {lesson.title}
+                  </h3>
+                  <p className="text-xs text-white/70">
                     {lesson.duration || "10:00"}
                   </p>
                 </div>
                 <PlayCircle
                   className={`w-5 h-5 ${
-                    isSelected ? "fill-white" : "text-slate-500"
+                    isSelected ? "fill-white text-white" : "text-white/50" // Changed text-slate-500 to white/50
                   }`}
                 />
               </div>
