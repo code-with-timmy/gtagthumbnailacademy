@@ -1,6 +1,7 @@
 import React from "react";
 import { Star, Eye, Users } from "lucide-react";
 import { motion } from "framer-motion";
+import pfp from "../assets/pfp.jpg";
 
 export default function InstructorSection() {
   return (
@@ -17,7 +18,7 @@ export default function InstructorSection() {
             <div className="w-40 h-40 md:w-52 md:h-52 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-1">
               <div className="w-full h-full rounded-full bg-[#0a0e1a] flex items-center justify-center overflow-hidden">
                 <div className="text-8xl">
-                  <img src="/pfp.jpg" alt="" />
+                  <img src={pfp} alt="" />
                 </div>
               </div>
             </div>
@@ -53,9 +54,10 @@ export default function InstructorSection() {
               transition={{ delay: 0.2 }}
               className="text-gray-300 mb-4"
             >
-              Hi, I'm <span className="text-white font-semibold">Cody</span> - a
-              Professional Gorilla Tag Thumbnail Designer with over 300M+ views
-              generated from my designs!
+              Hi, I'm{" "}
+              <span className="text-white font-semibold text-[17px]">Cody</span>{" "}
+              - a Professional Gorilla Tag Thumbnail Designer with over 300M+
+              views generated from my designs!
             </motion.p>
 
             <motion.p
