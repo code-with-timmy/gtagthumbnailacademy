@@ -125,14 +125,19 @@ function AppLayout() {
               ))}
 
               {isAdmin && (
-                <Link
+                <NavLink
                   to="/upload"
-                  variant="ghost"
-                  className="ml-2 text-gray-300 hover:text-white hover:bg-white/10"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-4 py-2 rounded-lg transition-all nav-glow ${
+                      isActive
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-300 hover:text-white hover:bg-white/5"
+                    }`
+                  }
                 >
-                  <UploadIcon className="w-4 h-4 mr-2" />
-                  Upload
-                </Link>
+                  <UploadIcon className="w-4 h-4" />
+                  <span>Upload</span>
+                </NavLink>
               )}
               <Button
                 onClick={logout}
@@ -179,14 +184,19 @@ function AppLayout() {
               </NavLink>
             ))}
             {isAdmin && (
-              <Link
+              <NavLink
                 to="/upload"
-                variant="ghost"
-                className="ml-2 text-gray-300 hover:text-white hover:bg-white/10"
+                className={({ isActive }) =>
+                  `flex items-center gap-2 px-4 py-2 rounded-lg transition-all nav-glow ${
+                    isActive
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`
+                }
               >
-                <UploadIcon className="w-4 h-4 mr-2" />
-                Upload
-              </Link>
+                <UploadIcon className="w-4 h-4" />
+                <span>Upload</span>
+              </NavLink>
             )}
             <button
               onClick={logout}
