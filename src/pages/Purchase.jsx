@@ -37,10 +37,20 @@ export default function Purchase() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Only redirect if they have an actual paid tier
-    const paidTiers = ["basic", "premium", "vip"];
-    if (!isLoadingUser && paidTiers.includes(user?.subscription_tier)) {
-      navigate("/course");
+    if (!isLoadingUser && user?.subscription_tier) {
+      const paidTiers = ["basic", "premium", "vip"];
+
+      // 1. Check if they have a paid tier
+      const hasPaidAccess = paidTiers.includes(user.subscription_tier);
+
+      // 2. Check if the payment was made in the last 60 seconds (Recent Success)
+      const lastPayment = new Date(user.last_payment_date).getTime();
+      const now = new Date().getTime();
+      const isRecentPurchase = now - lastPayment < 60000; // 60,000ms = 1 minute
+
+      if (hasPaidAccess && isRecentPurchase) {
+        navigate("/course");
+      }
     }
   }, [user, isLoadingUser, navigate]);
 
@@ -54,59 +64,6 @@ export default function Purchase() {
     queryKey: ["plans"],
     queryFn: getPlans,
   });
-  // const plans = [
-  //   {
-  //     id: "basic",
-  //     name: "Basic Access",
-  //     price: 25,
-  //     description: "Best value for Beginners",
-  //     features: [
-  //       "Minimum Course access",
-  //       "3 video lessons /monthly",
-  //       "7 video lessons & 150+ Assets",
-  //       "Tools & Software Training",
-  //       "Monthly updates",
-  //     ],
-  //     icon: Zap,
-  //     color: "from-blue-500 to-cyan-500",
-  //     kofiUrl: "https://ko-fi.com/summary/e566a237-f241-4bf8-9205-3ca12a48c753",
-  //   },
-  //   {
-  //     id: "premium",
-  //     name: "Premium Access",
-  //     price: 50,
-  //     description: "Best Value for practice & Serious learning",
-  //     features: [
-  //       "Everything in Basic",
-  //       "5 video lessons /monthly",
-  //       "Priority support",
-  //       "Exclusive resources",
-  //       "Access to 350+ Assets",
-  //       "Access to Half course Lessons",
-  //     ],
-  //     icon: Crown,
-  //     color: "from-purple-500 to-pink-500",
-  //     popular: true,
-  //     kofiUrl: "https://ko-fi.com/summary/fd636fa0-90d4-4279-98a4-da5403f9287b",
-  //   },
-  //   {
-  //     id: "vip",
-  //     name: "VIP Access",
-  //     price: 125,
-  //     description: "Best investment to save money and learn true skill",
-  //     features: [
-  //       "Everything in Premium",
-  //       "Access to the Entire Course",
-  //       "Exclusive thumbnail assets",
-  //       "1 on 1 Live Voice Calling (1 Hour)",
-  //       "Private Discord access",
-  //       "Free Monthly Updates",
-  //     ],
-  //     icon: Star,
-  //     color: "from-yellow-500 to-orange-500",
-  //     kofiUrl: "https://ko-fi.com/summary/63c6e1b7-faee-4ca9-a419-5bdaa081700b",
-  //   },
-  // ];
 
   const handlePlanSelect = async (plan) => {
     // const isAuth = await base44.auth.isAuthenticated();
@@ -158,40 +115,6 @@ export default function Purchase() {
       setIsVerifying(false);
     }
   };
-  // const handleVerify = async () => {
-  //   if (!kofiEmail.trim() || !transactionId.trim()) {
-  //     setVerifyMessage({ type: "error", text: "Please fill in both fields" });
-  //     return;
-  //   }
-
-  //   setIsVerifying(true);
-  //   setVerifyMessage(null);
-
-  //   try {
-  //     const response = await base44.functions.invoke("verifyKofiManual", {
-  //       kofi_email: kofiEmail.trim(),
-  //       transaction_id: transactionId.trim(),
-  //     });
-
-  //     if (response.data.success) {
-  //       setVerifyMessage({ type: "success", text: response.data.message });
-  //       setTimeout(() => {
-  //         window.location.href = createPageUrl("Course");
-  //       }, 1500);
-  //     } else {
-  //       setVerifyMessage({ type: "error", text: response.data.message });
-  //       setIsVerifying(false);
-  //     }
-  //   } catch (error) {
-  //     setVerifyMessage({
-  //       type: "error",
-  //       text:
-  //         error.response?.data?.message ||
-  //         "Verification failed. Please try again.",
-  //     });
-  //     setIsVerifying(false);
-  //   }
-  // };
 
   if (isLoadingUser) {
     return (
