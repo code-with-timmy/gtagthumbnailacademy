@@ -1,22 +1,20 @@
 import React, { useRef } from "react";
+import { motion } from "framer-motion";
 
 export default function WatermarkedVideo({
   videoUrl,
+  userEmail = "Protected Content", // Pass the user's email here
   className = "",
   onVideoEnd,
-  height = "auto",
 }) {
   const videoRef = useRef(null);
 
-  // Check if URL is a YouTube link and extract video ID
   const getYouTubeVideoId = (url) => {
     if (!url) return null;
-
     const patterns = [
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\?\/]+)/,
-      /^([a-zA-Z0-9_-]{11})$/, // Direct video ID
+      /^([a-zA-Z0-9_-]{11})$/,
     ];
-
     for (const pattern of patterns) {
       const match = url.match(pattern);
       if (match) return match[1];
@@ -24,7 +22,6 @@ export default function WatermarkedVideo({
     return null;
   };
 
-  // Check if URL is an iframe-based video (Bunny.net, Vimeo, etc.)
   const isIframeVideo = (url) => {
     if (!url) return false;
     return (
@@ -35,67 +32,76 @@ export default function WatermarkedVideo({
     );
   };
 
-  // Convert ScreenPal watch URL to embed URL
   const getScreenPalEmbedUrl = (url) => {
     if (!url || !url.includes("screenpal.com")) return url;
     const match = url.match(/watch\/([a-zA-Z0-9]+)/);
-    if (match) {
-      return `https://screenpal.com/player/${match[1]}?width=100%&height=100%&ff=1`;
-    }
-    return url;
+    return match
+      ? `https://screenpal.com/player/${match[1]}?width=100%&height=100%&ff=1`
+      : url;
   };
 
   const youtubeId = getYouTubeVideoId(videoUrl);
   const isIframe = isIframeVideo(videoUrl);
   const embedUrl = isIframe ? getScreenPalEmbedUrl(videoUrl) : videoUrl;
 
-  // If it's an iframe-based video (Bunny.net, YouTube, Vimeo, etc.)
-  if (youtubeId) {
-    return (
-      <div className={className}>
+  // --- Watermark Component ---
+  const WatermarkOverlay = () => (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
+      <motion.div
+        initial={{ x: "10%", y: "10%" }}
+        animate={{
+          x: ["10%", "80%", "10%", "70%", "20%"],
+          y: ["10%", "80%", "70%", "20%", "50%"],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+        className="text-white/20 text-xs font-mono whitespace-nowrap bg-black/20 px-2 py-1 rounded select-none"
+      >
+        {userEmail}
+      </motion.div>
+    </div>
+  );
+
+  return (
+    <div className={`${className} relative group`}>
+      {/* Watermark layer */}
+      <WatermarkOverlay />
+
+      {/* Video Content */}
+      {youtubeId ? (
         <iframe
           className="w-full h-full rounded-xl"
-          src={`https://www.youtube-nocookie.com/embed/${youtubeId}?modestbranding=1&rel=0&showinfo=0&controls=1&disablekb=1&fs=1&iv_load_policy=3&autoplay=0`}
+          src={`https://www.youtube-nocookie.com/embed/${youtubeId}?modestbranding=1&rel=0&controls=1&autoplay=0`}
           title="Video player"
           frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
-          style={{ border: "none" }}
         />
-      </div>
-    );
-  }
-
-  if (isIframe) {
-    return (
-      <div className={`${className} relative`}>
+      ) : isIframe ? (
         <iframe
           className="absolute inset-0 w-full h-full rounded-xl"
           src={embedUrl}
           title="Video player"
           frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
-          style={{ border: "none" }}
         />
-      </div>
-    );
-  }
-
-  // Otherwise, use regular video player
-  return (
-    <div className={`${className}`}>
-      <video
-        ref={videoRef}
-        controls
-        controlsList="nodownload"
-        autoPlay
-        className="w-full h-full rounded-xl bg-black"
-        src={videoUrl}
-        onEnded={onVideoEnd}
-      >
-        Your browser does not support the video tag.
-      </video>
+      ) : (
+        <video
+          ref={videoRef}
+          controls
+          controlsList="nodownload"
+          autoPlay
+          className="w-full h-full rounded-xl bg-black"
+          src={videoUrl}
+          onEnded={onVideoEnd}
+        >
+          Your browser does not support the video tag.
+        </video>
+      )}
     </div>
   );
 }
