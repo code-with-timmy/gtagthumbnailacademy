@@ -57,7 +57,7 @@ export default function Course() {
       // Auto-set tab based on user tier
       const userTier = profile?.subscription_tier || "none";
       if (userTier !== "none")
-        setActiveTab(userTier === "vip" ? "lifetime" : userTier);
+        setActiveTab(userTier === "vip" ? "VIP Access" : userTier);
     } catch (e) {
       console.error(e);
     } finally {
@@ -191,7 +191,7 @@ export default function Course() {
                 {key.charAt(0).toUpperCase() + key.slice(1)}
                 <span className="text-xs opacity-80">{cfg.price}</span>
               </button>
-              {key !== "lifetime" && (
+              {key !== "VIP Access" && (
                 <ChevronRight className="w-5 h-5 text-slate-600" />
               )}
             </React.Fragment>
@@ -204,14 +204,16 @@ export default function Course() {
             {selectedLesson &&
             activeTab ===
               (selectedLesson.required_tier === "vip"
-                ? "lifetime"
+                ? "VIP Access"
                 : selectedLesson.required_tier) ? (
               <div className="space-y-6">
-                <h1 className="text-3xl font-bold">{selectedLesson.title}</h1>
+                <h1 className="text-3xl font-bold text-white mb-2">
+                  {selectedLesson.title}
+                </h1>
                 <WatermarkedVideo
                   videoUrl={selectedLesson.video_url}
                   user={user}
-                  className="aspect-video bg-black rounded-xl"
+                  className="aspect-video bg-black rounded-xl overflow-hidden"
                 />
                 <div className="bg-sky-900/20 border border-sky-800/50 p-6 rounded-xl flex gap-3">
                   <Lock className="text-sky-400" />
@@ -243,7 +245,7 @@ export default function Course() {
                 </h2>
               </div>
               <div className="p-4 overflow-y-auto max-h-[600px]">
-                {hasAccess(activeTab === "lifetime" ? "vip" : activeTab) ? (
+                {hasAccess(activeTab === "VIP Access" ? "vip" : activeTab) ? (
                   renderLessonsList(activeTab)
                 ) : (
                   <div className="text-center py-12">
