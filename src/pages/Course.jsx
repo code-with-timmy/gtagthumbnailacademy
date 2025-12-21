@@ -52,14 +52,26 @@ export default function Course() {
         .order("order_index");
 
       setUser(profile);
-      setLessons(lessonsData || []);
+      const allLessons = lessonsData || [];
+      setLessons(allLessons);
 
-      // Normalize incoming tier from DB to our local tab keys
+      // 1. Determine the correct active tab key based on user tier
       const userTier = profile?.subscription_tier || "none";
+      let initialTab = "basic";
       if (userTier === "vip" || userTier === "lifetime") {
-        setActiveTab("lifetime");
+        initialTab = "lifetime";
       } else if (userTier !== "none") {
-        setActiveTab(userTier);
+        initialTab = userTier;
+      }
+      setActiveTab(initialTab);
+
+      // 2. AUTO-SELECT FIRST LESSON
+      // We look for the first lesson in the user's current tier
+      const dbTierKey = initialTab === "lifetime" ? "vip" : initialTab;
+      const firstLesson = allLessons.find((l) => l.required_tier === dbTierKey);
+
+      if (firstLesson) {
+        setSelectedLesson(firstLesson);
       }
     } catch (e) {
       console.error(e);
