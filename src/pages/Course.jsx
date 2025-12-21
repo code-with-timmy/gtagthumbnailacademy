@@ -24,6 +24,28 @@ export default function Course() {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
+  // 1. Move tierConfig to State to allow dynamic price updates
+  const [tierConfig, setTierConfig] = useState({
+    basic: {
+      icon: Zap,
+      color: "from-blue-500 to-cyan-500",
+      name: "Basic Tier",
+      price: "...",
+    },
+    premium: {
+      icon: Crown,
+      color: "from-purple-500 to-pink-500",
+      name: "Premium Tier",
+      price: "...",
+    },
+    lifetime: {
+      icon: Star,
+      color: "from-yellow-500 to-orange-500",
+      name: "VIP Access Tier",
+      price: "...",
+    },
+  });
+
   useEffect(() => {
     loadData();
   }, []);
@@ -39,23 +61,46 @@ export default function Course() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
+      // Fetch Profile, Lessons, and Plans in parallel for speed
+      const [profileRes, lessonsRes, plansRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single(),
+        supabase
+          .from("lessons")
+          .select("*")
+          .eq("is_published", true)
+          .order("order_index"),
+        supabase.from("plans").select("id, price"),
+      ]);
 
-      const { data: lessonsData } = await supabase
-        .from("lessons")
-        .select("*")
-        .eq("is_published", true)
-        .order("order_index");
+      const profile = profileRes.data;
+      const lessonsData = lessonsRes.data || [];
+      const plansData = plansRes.data || [];
 
       setUser(profile);
-      const allLessons = lessonsData || [];
-      setLessons(allLessons);
+      setLessons(lessonsData);
 
-      // 1. Determine the correct active tab key based on user tier
+      // 2. Update tierConfig with prices from Supabase
+      if (plansData.length > 0) {
+        setTierConfig((prev) => {
+          const updated = { ...prev };
+          plansData.forEach((plan) => {
+            // Map DB 'vip' to UI 'lifetime'
+            const key = plan.id === "vip" ? "lifetime" : plan.id;
+            if (updated[key]) {
+              updated[key].price = `$${plan.price}${
+                key === "lifetime" ? "" : "/mo"
+              }`;
+            }
+          });
+          return updated;
+        });
+      }
+
+      // 3. Determine Initial Tab
       const userTier = profile?.subscription_tier || "none";
       let initialTab = "basic";
       if (userTier === "vip" || userTier === "lifetime") {
@@ -65,15 +110,14 @@ export default function Course() {
       }
       setActiveTab(initialTab);
 
-      // 2. AUTO-SELECT FIRST ACCESSIBLE LESSON
+      // 4. Auto-select first lesson
       const dbTierKey = initialTab === "lifetime" ? "vip" : initialTab;
-      const firstLesson = allLessons.find((l) => l.required_tier === dbTierKey);
-
-      if (firstLesson) {
-        setSelectedLesson(firstLesson);
-      }
+      const firstLesson = lessonsData.find(
+        (l) => l.required_tier === dbTierKey
+      );
+      if (firstLesson) setSelectedLesson(firstLesson);
     } catch (e) {
-      console.error(e);
+      console.error("Error loading course data:", e);
     } finally {
       setIsLoading(false);
     }
@@ -85,43 +129,20 @@ export default function Course() {
   const hasAccess = (tabKey) => {
     if (isAdmin) return true;
 
-    // 1. Check Expiration Date
+    // Check Expiration (32-day buffer logic handled via expires_at timestamp in DB)
     if (user?.expires_at) {
       const now = new Date();
       const expiry = new Date(user.expires_at);
-      if (now > expiry) return false; // Subscription expired
+      if (now > expiry) return false;
     } else if (!user?.subscription_tier || user?.subscription_tier === "none") {
-      return false; // No tier assigned
+      return false;
     }
 
-    // 2. Rank Check
     const tierOrder = { none: 0, basic: 1, premium: 2, vip: 3, lifetime: 3 };
     const dbTierKey = tabKey === "lifetime" ? "vip" : tabKey;
-
     const userLevel = tierOrder[user?.subscription_tier] || 0;
     const requiredLevel = tierOrder[dbTierKey] || 0;
     return userLevel >= requiredLevel;
-  };
-
-  const tierConfig = {
-    basic: {
-      icon: Zap,
-      color: "from-blue-500 to-cyan-500",
-      name: "Basic Tier",
-      price: "$50/mo",
-    },
-    premium: {
-      icon: Crown,
-      color: "from-purple-500 to-pink-500",
-      name: "Premium Tier",
-      price: "$100/mo",
-    },
-    lifetime: {
-      icon: Star,
-      color: "from-yellow-500 to-orange-500",
-      name: "VIP Access Tier",
-      price: "$300",
-    },
   };
 
   const renderLessonsList = (tierKey) => {
@@ -190,7 +211,7 @@ export default function Course() {
   if (isLoading)
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <Loader2 className="animate-spin text-white" />
+        <Loader2 className="animate-spin text-white w-10 h-10" />
       </div>
     );
 
@@ -201,8 +222,8 @@ export default function Course() {
       className="min-h-screen bg-slate-950 text-white"
     >
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Nav Tabs */}
-        <div className="mb-4 flex items-center gap-3 overflow-x-auto pb-2">
+        {/* Nav Tabs with Dynamic Prices */}
+        <div className="mb-4 flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
           {Object.entries(tierConfig).map(([key, cfg], index, array) => (
             <React.Fragment key={key}>
               <button
@@ -217,7 +238,9 @@ export default function Course() {
                 {key === "lifetime"
                   ? "VIP Access"
                   : key.charAt(0).toUpperCase() + key.slice(1)}
-                <span className="text-xs opacity-80">{cfg.price}</span>
+                <span className="text-xs ml-1 opacity-70 font-bold">
+                  {cfg.price}
+                </span>
               </button>
               {index < array.length - 1 && (
                 <ChevronRight className="w-5 h-5 text-slate-600 flex-shrink-0" />
@@ -227,7 +250,6 @@ export default function Course() {
         </div>
 
         <div className="grid lg:grid-cols-[1fr_420px] gap-6">
-          {/* Main Video Area */}
           <Card className="overflow-hidden border-slate-800 bg-slate-900 shadow-xl p-6 min-h-[600px] flex flex-col">
             {selectedLesson &&
             activeTab ===
@@ -245,11 +267,11 @@ export default function Course() {
                   className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl"
                 />
                 <div className="bg-sky-900/20 border border-sky-800/50 p-6 rounded-xl flex gap-3">
-                  <Lock className="text-sky-400 w-5 h-5 mt-1" />
+                  <Lock className="text-sky-400 w-5 h-5 mt-1 flex-shrink-0" />
                   <p className="text-sm text-sky-100/80">
                     Protected Content: This video is watermarked for{" "}
-                    <strong>{user?.email}</strong>. Unauthorized sharing or
-                    recording is strictly prohibited.
+                    <strong>{user?.email}</strong>. Unauthorized sharing is
+                    prohibited.
                   </p>
                 </div>
               </div>
@@ -265,7 +287,6 @@ export default function Course() {
             )}
           </Card>
 
-          {/* Sidebar */}
           <div className="flex flex-col gap-6">
             <Card className="border-slate-800 bg-slate-900 overflow-hidden flex flex-col shadow-xl">
               <div
