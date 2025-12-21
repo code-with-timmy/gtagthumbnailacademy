@@ -217,7 +217,8 @@ function AppLayout() {
       {/* Footer */}
       <footer className="border-t border-white/10 py-8 mt-20">
         <div className="max-w-7xl mx-auto px-4 text-center text-gray-500 text-sm">
-          © 2024 Gorilla Tag Thumbnail Academy. All rights reserved.
+          © {new Date().getFullYear()} Gorilla Tag Thumbnail Academy. All rights
+          reserved.
         </div>
       </footer>
     </div>
