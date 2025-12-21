@@ -287,7 +287,7 @@ export default function Purchase() {
         </div>
 
         {/* Verification Section */}
-        <div className="max-w-2xl mx-auto">
+        {/* <div className="max-w-2xl mx-auto">
           <Card className="border-slate-800 bg-slate-900">
             <CardHeader>
               <CardTitle className="text-center text-white text-2xl">
@@ -411,7 +411,7 @@ export default function Purchase() {
               )}
             </CardContent>
           </Card>
-        </div>
+        </div> */}
       </div>
     </div>
   );
