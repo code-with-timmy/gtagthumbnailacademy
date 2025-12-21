@@ -65,8 +65,7 @@ export default function Course() {
       }
       setActiveTab(initialTab);
 
-      // 2. AUTO-SELECT FIRST LESSON
-      // We look for the first lesson in the user's current tier
+      // 2. AUTO-SELECT FIRST ACCESSIBLE LESSON
       const dbTierKey = initialTab === "lifetime" ? "vip" : initialTab;
       const firstLesson = allLessons.find((l) => l.required_tier === dbTierKey);
 
@@ -82,14 +81,24 @@ export default function Course() {
 
   const isAdmin =
     user?.role === "admin" || user?.email === "codydankdabs@gmail.com";
-  const currentTier = user?.subscription_tier || "none";
 
   const hasAccess = (tabKey) => {
     if (isAdmin) return true;
+
+    // 1. Check Expiration Date
+    if (user?.expires_at) {
+      const now = new Date();
+      const expiry = new Date(user.expires_at);
+      if (now > expiry) return false; // Subscription expired
+    } else if (!user?.subscription_tier || user?.subscription_tier === "none") {
+      return false; // No tier assigned
+    }
+
+    // 2. Rank Check
     const tierOrder = { none: 0, basic: 1, premium: 2, vip: 3, lifetime: 3 };
     const dbTierKey = tabKey === "lifetime" ? "vip" : tabKey;
 
-    const userLevel = tierOrder[currentTier] || 0;
+    const userLevel = tierOrder[user?.subscription_tier] || 0;
     const requiredLevel = tierOrder[dbTierKey] || 0;
     return userLevel >= requiredLevel;
   };
@@ -117,7 +126,6 @@ export default function Course() {
 
   const renderLessonsList = (tierKey) => {
     const config = tierConfig[tierKey];
-    // Map 'lifetime' tab to 'vip' database field
     const dbKey = tierKey === "lifetime" ? "vip" : tierKey;
     const filtered = lessons.filter((l) => l.required_tier === dbKey);
 
@@ -125,8 +133,6 @@ export default function Course() {
       return (
         <div className="text-center py-8 text-slate-500">No lessons yet</div>
       );
-
-    // Inside renderLessonsList function, locate the return map:
 
     return (
       <div className="space-y-2">
@@ -142,7 +148,7 @@ export default function Course() {
                 isSelected
                   ? `bg-gradient-to-r ${config.color} text-white shadow-lg scale-[1.02]`
                   : isAccessible
-                  ? "bg-slate-800/50 hover:bg-slate-800 border border-slate-700 text-white" // Added text-white here
+                  ? "bg-slate-800/50 hover:bg-slate-800 border border-slate-700 text-white"
                   : "bg-slate-800/30 opacity-60 cursor-not-allowed text-slate-400"
               }`}
             >
@@ -153,15 +159,14 @@ export default function Course() {
                   }`}
                 >
                   {!isAccessible ? (
-                    <Lock className="w-4 h-4 text-white" /> // Added text-white
+                    <Lock className="w-4 h-4 text-white" />
                   ) : isSelected ? (
-                    <CheckCircle2 className="w-5 h-5 text-white" /> // Added text-white
+                    <CheckCircle2 className="w-5 h-5 text-white" />
                   ) : (
-                    <span className="text-white">{index + 1}</span> // Added text-white
+                    <span className="text-white">{index + 1}</span>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  {/* Changed h3 to text-white and p to text-white/70 */}
                   <h3 className="font-semibold truncate text-white">
                     {lesson.title}
                   </h3>
@@ -171,7 +176,7 @@ export default function Course() {
                 </div>
                 <PlayCircle
                   className={`w-5 h-5 ${
-                    isSelected ? "fill-white text-white" : "text-white/50" // Changed text-slate-500 to white/50
+                    isSelected ? "fill-white text-white" : "text-white/50"
                   }`}
                 />
               </div>
@@ -228,7 +233,8 @@ export default function Course() {
             activeTab ===
               (selectedLesson.required_tier === "vip"
                 ? "lifetime"
-                : selectedLesson.required_tier) ? (
+                : selectedLesson.required_tier) &&
+            hasAccess(activeTab) ? (
               <div className="space-y-6">
                 <h1 className="text-3xl font-bold text-white">
                   {selectedLesson.title}
@@ -243,8 +249,7 @@ export default function Course() {
                   <p className="text-sm text-sky-100/80">
                     Protected Content: This video is watermarked for{" "}
                     <strong>{user?.email}</strong>. Unauthorized sharing or
-                    recording is strictly prohibited and results in legal
-                    action.
+                    recording is strictly prohibited.
                   </p>
                 </div>
               </div>
@@ -252,7 +257,9 @@ export default function Course() {
               <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
                 <PlayCircle className="w-16 h-16 mb-4 opacity-10" />
                 <p className="text-lg">
-                  Select a lesson from the {activeTab} list to begin
+                  {hasAccess(activeTab)
+                    ? `Select a lesson from the ${activeTab} list to begin`
+                    : "Upgrade your tier to access this content"}
                 </p>
               </div>
             )}
