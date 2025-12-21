@@ -9,17 +9,21 @@ export default function InstructorSection() {
       <div className="max-w-5xl mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center gap-12">
           {/* Avatar */}
+          {/* Avatar */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             className="flex-shrink-0"
           >
-            <div className="w-40 h-40 md:w-52 md:h-52 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-1">
-              <div className="w-full h-full rounded-full bg-[#0a0e1a] flex items-center justify-center overflow-hidden">
-                <div className="text-8xl">
-                  <img src={pfp} alt="" />
-                </div>
+            <div className="w-40 h-40 md:w-52 md:h-52 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-1 shadow-[0_0_20px_rgba(168,85,247,0.4)]">
+              <div className="w-full h-full rounded-full bg-[#0a0e1a] overflow-hidden">
+                {/* Removed the text-8xl div and added object-cover */}
+                <img
+                  src={pfp}
+                  alt="Cody Instructor"
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
           </motion.div>
