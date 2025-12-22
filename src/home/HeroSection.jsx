@@ -86,6 +86,14 @@ export default function HeroSection({ handleAccessCourse }) {
             Protected videos
           </div>
         </motion.div>
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="coolvetica text-5xl md:text-7xl lg:text-8xl font-bold mb-8 leading-none"
+        >
+          ALL ASSETS ARE INCLUDED FREE
+        </motion.h1>
       </div>
     </section>
   );
