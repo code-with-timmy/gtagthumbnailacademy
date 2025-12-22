@@ -24,17 +24,50 @@ export default function UploadFilesModal({
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   // 1. handleDrop should NOT have [files] in the dependency array
-  const handleDrop = useCallback((e) => {
+
+  // Helper to recursively get all files from a directory entry
+  const getAllFilesFromEntry = async (entry) => {
+    let files = [];
+    if (entry.isFile) {
+      const file = await new Promise((resolve) => entry.file(resolve));
+      // We can attach the relative path if you want to keep track of folder names
+      files.push(file);
+    } else if (entry.isDirectory) {
+      const directoryReader = entry.createReader();
+      const entries = await new Promise((resolve) => {
+        directoryReader.readEntries(resolve);
+      });
+      for (const innerEntry of entries) {
+        const innerFiles = await getAllFilesFromEntry(innerEntry);
+        files = [...files, ...innerFiles];
+      }
+    }
+    return files;
+  };
+
+  const handleDrop = useCallback(async (e) => {
     e.preventDefault();
     setIsDragging(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFiles = Array.from(e.dataTransfer.files);
-      // Use the functional update (prev => ...) so we don't need 'files' as a dependency
-      setFiles((prev) => [...prev, ...droppedFiles]);
-      e.dataTransfer.clearData();
+    const items = e.dataTransfer.items;
+    if (items) {
+      const filePromises = [];
+
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry();
+        if (entry) {
+          filePromises.push(getAllFilesFromEntry(entry));
+        }
+      }
+
+      const results = await Promise.all(filePromises);
+      const allDroppedFiles = results.flat(); // Flatten the array of arrays into one list
+
+      setFiles((prev) => [...prev, ...allDroppedFiles]);
     }
-  }, []); // Keep this array empty!
+
+    e.dataTransfer.clearData();
+  }, []);
 
   if (!isOpen) return null;
   // 2. handleFileSelect doesn't need useCallback, just a regular function
@@ -144,6 +177,8 @@ export default function UploadFilesModal({
           <input
             type="file"
             multiple
+            webkitdirectory="true" // Allows folder selection in Chrome/Safari/Edge
+            mozdirectory="true" // Allows folder selection in Firefox
             onChange={handleFileSelect}
             className="hidden"
             id="file-upload"
