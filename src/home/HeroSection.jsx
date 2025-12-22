@@ -90,7 +90,7 @@ export default function HeroSection({ handleAccessCourse }) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="coolvetica text-3xl md:text-7xl lg:text-6xl font-bold mt-8 leading-none"
+          className="text-3xl md:text-7xl lg:text-6xl font-bold mt-8 leading-none"
         >
           ALL ASSETS ARE INCLUDED FREE
         </motion.h1>
