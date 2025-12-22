@@ -65,14 +65,20 @@ export default function Purchase() {
     queryFn: getPlans,
   });
 
+  const PLANS_CONFIG = {
+    basic: "https://ko-fi.com/summary/89f35086-28db-4cd6-a1dc-785c6454d003", // Replace with your PUBLIC links
+    premium: "https://ko-fi.com/summary/22ecc948-72f3-45b4-af80-fd2dd160d6de",
+    vip: "https://ko-fi.com/summary/11258c9f-6eac-4c58-a516-4822fc550ce4",
+  };
+
   const handlePlanSelect = (plan) => {
-    // Check if it's a full external URL
-    if (plan.kofi_url?.startsWith("http")) {
-      // This tells the browser to actually LEAVE your site and go to Ko-fi
-      window.location.href = plan.kofi_url;
+    const directLink = PLANS_CONFIG[plan.id];
+
+    if (directLink) {
+      window.location.href = directLink;
     } else {
-      // If it's an internal path, use navigate
-      navigate(plan.kofi_url);
+      // Fallback to DB if not in hardcoded list
+      window.location.href = plan.kofi_url;
     }
   };
 
