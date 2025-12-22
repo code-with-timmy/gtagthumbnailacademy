@@ -202,14 +202,36 @@ export default function Assets() {
 
   const handleDeleteFile = async (file) => {
     try {
-      const storagePath = file.file_url.split("/assets/")[1];
+      // 1. Extract the path correctly
+      // We use decodeURIComponent in case there are spaces or special chars in the name
+      const storagePath = decodeURIComponent(
+        file.file_url.split("/storage/v1/object/public/assets/")[1]
+      );
+
       if (storagePath) {
-        await supabase.storage.from("assets").remove([storagePath]);
+        const { error: storageError } = await supabase.storage
+          .from("assets")
+          .remove([storagePath]);
+
+        if (storageError) {
+          console.error("Storage delete failed:", storageError.message);
+          // We throw here so the DB record isn't deleted if the file isn't gone
+          throw storageError;
+        }
       }
-      await supabase.from("asset_files").delete().eq("id", file.id);
+
+      // 2. Delete the DB record only after storage is confirmed gone
+      const { error: dbError } = await supabase
+        .from("asset_files")
+        .delete()
+        .eq("id", file.id);
+
+      if (dbError) throw dbError;
+
       loadData();
     } catch (error) {
       console.error("Error deleting asset:", error);
+      alert("Failed to delete. Check console for details.");
     }
   };
 
