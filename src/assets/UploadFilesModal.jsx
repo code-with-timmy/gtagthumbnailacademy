@@ -176,8 +176,7 @@ export default function UploadFilesModal({
           <input
             type="file"
             multiple
-            webkitdirectory="true" // Allows folder selection in Chrome/Safari/Edge
-            mozdirectory="true" // Allows folder selection in Firefox
+            accept="image/*, .zip, .rar, .7z, .pdf" // This lets you see images and files
             onChange={handleFileSelect}
             className="hidden"
             id="file-upload"
