@@ -65,14 +65,15 @@ export default function Purchase() {
     queryFn: getPlans,
   });
 
-  const handlePlanSelect = async (plan) => {
-    // const isAuth = await base44.auth.isAuthenticated();
-    // if (!isAuth) {
-    //   base44.auth.redirectToLogin(window.location.pathname);
-    //   return;
-    // }
-
-    navigate(plan.kofi_url);
+  const handlePlanSelect = (plan) => {
+    // Check if it's a full external URL
+    if (plan.kofi_url?.startsWith("http")) {
+      // This tells the browser to actually LEAVE your site and go to Ko-fi
+      window.location.href = plan.kofi_url;
+    } else {
+      // If it's an internal path, use navigate
+      navigate(plan.kofi_url);
+    }
   };
 
   // TEMPORARY LOCAL MOCK
