@@ -180,6 +180,9 @@ export default function Purchase() {
                       <span className="text-5xl font-bold text-white">
                         ${plan.price}
                       </span>
+                      <span className="text-gray-500 line-through text-2xl">
+                        ${plan.originalPrice}
+                      </span>
                     </div>
                   </div>
                 </CardHeader>
