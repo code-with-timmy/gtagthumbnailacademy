@@ -176,7 +176,7 @@ export default function UploadFilesModal({
           <input
             type="file"
             multiple
-            accept="image/*, .zip, .rar, .7z, .pdf" // This lets you see images and files
+            accept=".jpg, .jpeg, .png, .webp" // This forces the explorer to show these files
             onChange={handleFileSelect}
             className="hidden"
             id="file-upload"
