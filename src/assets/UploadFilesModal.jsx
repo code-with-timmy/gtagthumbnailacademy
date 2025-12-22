@@ -26,44 +26,43 @@ export default function UploadFilesModal({
   // 1. handleDrop should NOT have [files] in the dependency array
 
   // Helper to recursively get all files from a directory entry
-  const getAllFilesFromEntry = async (entry) => {
-    let files = [];
-    if (entry.isFile) {
-      const file = await new Promise((resolve) => entry.file(resolve));
-      // We can attach the relative path if you want to keep track of folder names
-      files.push(file);
-    } else if (entry.isDirectory) {
-      const directoryReader = entry.createReader();
-      const entries = await new Promise((resolve) => {
-        directoryReader.readEntries(resolve);
-      });
-      for (const innerEntry of entries) {
-        const innerFiles = await getAllFilesFromEntry(innerEntry);
-        files = [...files, ...innerFiles];
+  const scanEntries = async (entries) => {
+    let allFiles = [];
+
+    for (const entry of entries) {
+      if (entry.isFile) {
+        const file = await new Promise((resolve) => entry.file(resolve));
+        allFiles.push(file);
+      } else if (entry.isDirectory) {
+        const directoryReader = entry.createReader();
+        const innerEntries = await new Promise((resolve) => {
+          directoryReader.readEntries(resolve);
+        });
+        // Recursively scan subfolders
+        const recursiveFiles = await scanEntries(innerEntries);
+        allFiles = [...allFiles, ...recursiveFiles];
       }
     }
-    return files;
+    return allFiles;
   };
 
   const handleDrop = useCallback(async (e) => {
     e.preventDefault();
     setIsDragging(false);
 
-    const items = e.dataTransfer.items;
-    if (items) {
-      const filePromises = [];
+    // webkitGetAsEntry is the key to reading folders
+    const items = Array.from(e.dataTransfer.items);
+    if (items && items.length > 0) {
+      const entries = items
+        .map((item) => item.webkitGetAsEntry())
+        .filter(Boolean);
 
-      for (let i = 0; i < items.length; i++) {
-        const entry = items[i].webkitGetAsEntry();
-        if (entry) {
-          filePromises.push(getAllFilesFromEntry(entry));
-        }
+      try {
+        const droppedFiles = await scanEntries(entries);
+        setFiles((prev) => [...prev, ...droppedFiles]);
+      } catch (err) {
+        console.error("Folder scan failed:", err);
       }
-
-      const results = await Promise.all(filePromises);
-      const allDroppedFiles = results.flat(); // Flatten the array of arrays into one list
-
-      setFiles((prev) => [...prev, ...allDroppedFiles]);
     }
 
     e.dataTransfer.clearData();
