@@ -12,7 +12,7 @@ import Course from "./pages/Course";
 import Purchase from "./pages/Purchase";
 import Assets from "./pages/Assets";
 import Upload from "./pages/Upload";
-// import AdminKofi from "./pages/AdminKofi";
+import AdminKofi from "./pages/AdminKofi";
 import AppLayout from "./components/ui/AppLayout";
 import ProtectedRoute from "./components/ui/ProtectedRoute";
 import ProtectedRouteForCourse from "./components/ui/ProtectedRouteForCourse";
@@ -50,7 +50,7 @@ function App() {
               <Route path="assets" element={<Assets />} />
               <Route path="upload" element={<Upload />} />
             </Route>
-            {/* <Route path="adminKofi" element={<AdminKofi />} /> */}
+            <Route path="adminKofi" element={<AdminKofi />} />
           </Route>
 
           {/* GROUP C: Public Routes */}
