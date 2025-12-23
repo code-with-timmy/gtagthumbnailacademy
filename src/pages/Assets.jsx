@@ -1,426 +1,300 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import supabase from "@/supabase";
+import { supabase } from "@/supabaseClient"; // Adjust based on your setup
 import {
-  Loader2,
-  Lock,
-  Sparkles,
-  FolderPlus,
+  Plus,
+  Search,
+  Folder,
+  File,
+  Download,
+  ExternalLink,
+  MoreVertical,
+  Trash2,
+  Edit,
   Upload,
+  Image as ImageIcon,
+  ChevronRight,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import FolderCard from "@/assets/FolderCard";
-import AssetTierTabs from "@/assets/AssetTierTabs";
-import FileCard from "@/assets/FileCard";
-import CreateFolderModal from "@/assets/CreateFolderModal";
-import UploadFilesModal from "@/assets/UploadFilesModal";
-import EditFolderModal from "@/assets/EditFolderModal";
-import EditFileModal from "@/assets/EditFileModal";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 export default function Assets() {
-  const [user, setUser] = useState(null);
-  const [folders, setFolders] = useState([]);
-  const [files, setFiles] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTier, setActiveTier] = useState("basic");
-  const [currentFolderId, setCurrentFolderId] = useState(null);
-  const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [assets, setAssets] = useState([]);
+  const [currentFolder, setCurrentFolder] = useState(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [editingFolder, setEditingFolder] = useState(null);
-  const [isEditFolderOpen, setIsEditFolderOpen] = useState(false);
-  const [editingFile, setEditingFile] = useState(null);
-  const [isEditFileOpen, setIsEditFileOpen] = useState(false);
-  const [storageStats, setStorageStats] = useState({
-    used: 0,
-    limit: 5368709120, // 5GB
-  });
-  const navigate = useNavigate();
+
+  // Form State
+  const [isLink, setIsLink] = useState(false);
+  const [assetName, setAssetName] = useState("");
+  const [assetUrl, setAssetUrl] = useState(""); // For GDrive Link
+  const [assetFile, setAssetFile] = useState(null); // For direct file upload
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [selectedTier, setSelectedTier] = useState("basic");
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, [navigate]);
+    fetchAssets();
+  }, [currentFolder]);
 
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-
-      if (sessionError || !session) {
-        navigate("/login");
-        return;
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-
-      if (profileError) throw profileError;
-      setUser(profile);
-
-      // --- EXPIRATION & ACCESS CHECK ---
-      const isAdmin =
-        profile.role === "admin" || profile.email === "codydankdabs@gmail.com";
-      const isExpired = profile.expires_at
-        ? new Date() > new Date(profile.expires_at)
-        : false;
-
-      if (!isAdmin) {
-        // If expired or no tier, kick to purchase
-        if (
-          isExpired ||
-          !profile.subscription_tier ||
-          profile.subscription_tier === "none"
-        ) {
-          navigate("/purchase");
-          return;
-        }
-      }
-
-      // Sync active tab with user tier if not expired
-      if (profile.subscription_tier && !isExpired) {
-        setActiveTier(
-          profile.subscription_tier === "vip"
-            ? "vip"
-            : profile.subscription_tier
-        );
-      }
-
-      const [foldersRes, filesRes] = await Promise.all([
-        supabase
-          .from("asset_folders")
-          .select("*")
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("asset_files")
-          .select("*")
-          .order("created_at", { ascending: false }),
-        calculateStorage(),
-      ]);
-
-      setFolders(foldersRes.data || []);
-      setFiles(filesRes.data || []);
-    } catch (error) {
-      console.error("Error loading assets:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const calculateStorage = async () => {
-    const { data, error } = await supabase.storage.from("assets").list("", {
-      limit: 1000,
-    });
-    if (!error && data) {
-      const totalBytes = data.reduce(
-        (acc, file) => acc + (file.metadata?.size || 0),
-        0
-      );
-      setStorageStats((prev) => ({ ...prev, used: totalBytes }));
-    }
-  };
-
-  const canAccessTier = (tier) => {
-    if (user?.role === "admin" || user?.email === "codydankdabs@gmail.com")
-      return true;
-
-    // Time-based check
-    if (user?.expires_at && new Date() > new Date(user.expires_at))
-      return false;
-
-    const tierOrder = { none: 0, basic: 1, premium: 2, vip: 3, lifetime: 3 };
-    const userRank = tierOrder[user?.subscription_tier] || 0;
-    const targetRank = tierOrder[tier] || 0;
-    return userRank >= targetRank;
-  };
-
-  const handleTierChange = (tier) => {
-    if (canAccessTier(tier)) {
-      setActiveTier(tier);
-      setCurrentFolderId(null);
-    } else {
-      navigate("/purchase");
-    }
-  };
-
-  // --- CRUD Handlers ---
-  const handleCreateFolder = async (data) => {
-    const { error } = await supabase.from("asset_folders").insert([data]);
-    if (!error) loadData();
-    setIsCreateFolderOpen(false);
-  };
-
-  const handleUploadFile = async (data) => {
-    const { error } = await supabase.from("asset_files").insert([data]);
-    if (!error) loadData();
-    setIsUploadOpen(false);
-  };
-
-  const handleSaveFolder = async (data) => {
-    const { error } = await supabase
-      .from("asset_folders")
-      .update(data)
-      .eq("id", editingFolder.id);
-    if (!error) {
-      setIsEditFolderOpen(false);
-      setEditingFolder(null);
-      loadData();
-    }
-  };
-
-  const handleDeleteFolder = async (folderId) => {
-    if (!window.confirm("Delete folder and all files inside?")) return;
-    try {
-      const filesToDelete = files.filter((f) => f.folder_id === folderId);
-      if (filesToDelete.length > 0) {
-        const paths = filesToDelete.map((f) => f.file_url.split("/assets/")[1]);
-        await supabase.storage.from("assets").remove(paths);
-      }
-      await supabase.from("asset_folders").delete().eq("id", folderId);
-      loadData();
-    } catch (error) {
-      console.error("Folder deletion failed:", error);
-    }
-  };
-
-  const handleSaveFile = async (data) => {
-    const { error } = await supabase
+  async function fetchAssets() {
+    setLoading(true);
+    const { data, error } = await supabase
       .from("asset_files")
-      .update(data)
-      .eq("id", editingFile.id);
-    if (!error) {
-      setIsEditFileOpen(false);
-      setEditingFile(null);
-      loadData();
-    }
-  };
+      .select("*")
+      .eq("parent_id", currentFolder?.id || null)
+      .order("created_at", { ascending: false });
 
-  const handleDeleteFile = async (file) => {
-    try {
-      // 1. Extract the path correctly
-      // We use decodeURIComponent in case there are spaces or special chars in the name
-      const storagePath = decodeURIComponent(
-        file.file_url.split("/storage/v1/object/public/assets/")[1]
-      );
-
-      if (storagePath) {
-        const { error: storageError } = await supabase.storage
-          .from("assets")
-          .remove([storagePath]);
-
-        if (storageError) {
-          console.error("Storage delete failed:", storageError.message);
-          // We throw here so the DB record isn't deleted if the file isn't gone
-          throw storageError;
-        }
-      }
-
-      // 2. Delete the DB record only after storage is confirmed gone
-      const { error: dbError } = await supabase
-        .from("asset_files")
-        .delete()
-        .eq("id", file.id);
-
-      if (dbError) throw dbError;
-
-      loadData();
-    } catch (error) {
-      console.error("Error deleting asset:", error);
-      alert("Failed to delete. Check console for details.");
-    }
-  };
-
-  const handleDownload = async (file) => {
-    try {
-      const response = await fetch(file.file_url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", file.name || "download");
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      window.open(file.file_url, "_blank");
-    }
-  };
-
-  // --- Filter Logic ---
-  const filteredFolders = folders.filter((f) => f.tier === activeTier);
-  const filteredFiles = currentFolderId
-    ? files.filter((f) => f.folder_id === currentFolderId)
-    : files.filter((f) => f.tier === activeTier && !f.folder_id);
-
-  const isAdmin =
-    user?.role === "admin" || user?.email === "codydankdabs@gmail.com";
-  const tierNames = { basic: "Basic", premium: "Premium", vip: "VIP Access" };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      </div>
-    );
+    if (!error) setAssets(data);
+    setLoading(false);
   }
 
-  const usedMB = (storageStats.used / 1024 / 1024).toFixed(1);
-  const limitMB = (storageStats.limit / 1024 / 1024).toFixed(0);
-  const percentage = Math.min(
-    (storageStats.used / storageStats.limit) * 100,
-    100
-  );
+  const handleUpload = async () => {
+    setIsUploading(true);
+    try {
+      let finalFileUrl = assetUrl;
+      let finalThumbUrl = "";
+
+      // 1. Handle Thumbnail Upload (Required for your 1920x1080 preview)
+      if (thumbnailFile) {
+        const thumbName = `thumbs/${Date.now()}-${thumbnailFile.name}`;
+        const { data: thumbData } = await supabase.storage
+          .from("assets")
+          .upload(thumbName, thumbnailFile);
+
+        if (thumbData) {
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("assets").getPublicUrl(thumbName);
+          finalThumbUrl = publicUrl;
+        }
+      }
+
+      // 2. Handle Asset File (if not a link)
+      if (!isLink && assetFile) {
+        const fileName = `files/${Date.now()}-${assetFile.name}`;
+        const { data: fileData } = await supabase.storage
+          .from("assets")
+          .upload(fileName, assetFile);
+
+        if (fileData) {
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("assets").getPublicUrl(fileName);
+          finalFileUrl = publicUrl;
+        }
+      }
+
+      // 3. Save to Database
+      const { error } = await supabase.from("asset_files").insert([
+        {
+          name: assetName,
+          file_url: finalFileUrl,
+          thumbnail_url: finalThumbUrl,
+          type: isLink ? "link" : "file",
+          required_tier: selectedTier,
+          parent_id: currentFolder?.id || null,
+        },
+      ]);
+
+      if (error) throw error;
+
+      setIsUploadOpen(false);
+      resetForm();
+      fetchAssets();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setAssetName("");
+    setAssetUrl("");
+    setAssetFile(null);
+    setThumbnailFile(null);
+    setIsLink(false);
+  };
 
   return (
-    <div className="min-h-screen py-8 bg-slate-950 text-white">
-      <div className="max-w-7xl mx-auto px-4">
-        {isAdmin && (
-          <div className="mb-6 p-4 bg-slate-900 rounded-xl border border-white/5">
-            <div className="flex justify-between items-end mb-2">
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">
-                  Storage Usage
-                </p>
-                <p className="text-sm font-bold">
-                  {usedMB} MB / {limitMB} MB
-                </p>
-              </div>
-              <span className="text-xs text-gray-500">
-                {percentage.toFixed(1)}%
-              </span>
-            </div>
-            <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all duration-500 ${
-                  percentage > 80 ? "bg-red-500" : "bg-blue-500"
-                }`}
-                style={{ width: `${percentage}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        <AssetTierTabs
-          activeTier={activeTier}
-          setActiveTier={handleTierChange}
-          userTier={user?.subscription_tier || "none"}
-          onUpgradeClick={() => navigate("/purchase")}
-        />
-
-        <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
+    <div className="min-h-screen bg-slate-950 text-white p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
           <div>
-            {currentFolderId && (
-              <button
-                onClick={() => setCurrentFolderId(null)}
-                className="flex items-center gap-2 text-gray-400 hover:text-white mb-2"
-              >
-                <ArrowLeft className="w-4 h-4" /> Back to folders
-              </button>
-            )}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/50 text-cyan-300 text-sm mb-3">
-              <Sparkles className="w-4 h-4" /> Exclusive Course Assets
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold">
-              {tierNames[activeTier]} Tier Assets
-            </h1>
+            <h1 className="text-3xl font-bold">Course Assets</h1>
+            <p className="text-slate-400">
+              Manage your thumbnails and download links
+            </p>
           </div>
 
-          {isAdmin && (
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setIsCreateFolderOpen(true)}
-                className="bg-pink-500 hover:bg-pink-600"
-              >
-                <FolderPlus className="w-4 h-4 mr-2" /> New Folder
+          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" /> New Asset
               </Button>
-              <Button
-                onClick={() => setIsUploadOpen(true)}
-                className="bg-gradient-to-r from-blue-600 to-cyan-500"
-              >
-                <Upload className="w-4 h-4 mr-2" /> Upload Files
-              </Button>
-            </div>
-          )}
+            </DialogTrigger>
+            <DialogContent className="bg-slate-900 border-slate-800 text-white">
+              <DialogHeader>
+                <DialogTitle>Upload New Asset</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Asset Name</Label>
+                  <Input
+                    placeholder="e.g. Photoshop Overlay Pack"
+                    value={assetName}
+                    onChange={(e) => setAssetName(e.target.value)}
+                    className="bg-slate-800 border-slate-700"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2 py-2">
+                  <Switch checked={isLink} onCheckedChange={setIsLink} />
+                  <Label>Use External Link (Google Drive/Dropbox)</Label>
+                </div>
+
+                {isLink ? (
+                  <div className="space-y-2">
+                    <Label>Google Drive URL</Label>
+                    <Input
+                      placeholder="https://drive.google.com/..."
+                      value={assetUrl}
+                      onChange={(e) => setAssetUrl(e.target.value)}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Upload File</Label>
+                    <Input
+                      type="file"
+                      onChange={(e) => setAssetFile(e.target.files[0])}
+                      className="bg-slate-800 border-slate-700"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Thumbnail (1920x1080 Recommended)</Label>
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-700 rounded-lg p-4 bg-slate-800/50">
+                    {thumbnailFile ? (
+                      <p className="text-sm text-blue-400">
+                        {thumbnailFile.name}
+                      </p>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center">
+                        <ImageIcon className="w-8 h-8 text-slate-500 mb-2" />
+                        <span className="text-xs text-slate-400">
+                          Click to upload preview image
+                        </span>
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/*"
+                          onChange={(e) => setThumbnailFile(e.target.files[0])}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  onClick={handleUpload}
+                  disabled={isUploading}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
+                  {isUploading ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    "Create Asset"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
-        {!currentFolderId && filteredFolders.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">Folders</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {filteredFolders.map((folder) => (
-                <FolderCard
-                  key={folder.id}
-                  folder={folder}
-                  isAdmin={isAdmin}
-                  onClick={() => setCurrentFolderId(folder.id)}
-                  onEdit={() => {
-                    setEditingFolder(folder);
-                    setIsEditFolderOpen(true);
-                  }}
-                  onDelete={() => handleDeleteFolder(folder.id)}
-                />
-              ))}
-            </div>
+        {/* Assets Grid */}
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="animate-spin w-10 h-10" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {assets.map((asset) => (
+              <div
+                key={asset.id}
+                className="group bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:border-blue-500/50 transition-all"
+              >
+                {/* Thumbnail Container: 16:9 Aspect Ratio */}
+                <div className="aspect-video w-full bg-slate-800 relative overflow-hidden">
+                  {asset.thumbnail_url ? (
+                    <img
+                      src={asset.thumbnail_url}
+                      alt={asset.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-slate-600">
+                      <ImageIcon className="w-12 h-12" />
+                    </div>
+                  )}
+
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button
+                      variant="outline"
+                      className="border-white text-white hover:bg-white hover:text-black"
+                      onClick={() => window.open(asset.file_url, "_blank")}
+                    >
+                      {asset.type === "link" ? (
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                      ) : (
+                        <Download className="w-4 h-4 mr-2" />
+                      )}
+                      {asset.type === "link" ? "Open Link" : "Download"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="p-4 flex justify-between items-center">
+                  <div>
+                    <h3 className="font-semibold truncate max-w-[200px]">
+                      {asset.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">
+                      {asset.required_tier} Tier
+                    </p>
+                  </div>
+                  <div className="bg-slate-800 p-2 rounded-lg">
+                    {asset.type === "link" ? (
+                      <ExternalLink className="w-4 h-4 text-blue-400" />
+                    ) : (
+                      <Download className="w-4 h-4 text-green-400" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
-
-        <div>
-          <h2 className="text-xl font-bold mb-4">Files</h2>
-          {filteredFiles.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {filteredFiles.map((file) => (
-                <FileCard
-                  key={file.id}
-                  file={file}
-                  isAdmin={isAdmin}
-                  onDownload={() => handleDownload(file)}
-                  onEdit={() => {
-                    setEditingFile(file);
-                    setIsEditFileOpen(true);
-                  }}
-                  onDelete={() => handleDeleteFile(file)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              No files in this {currentFolderId ? "folder" : "tier"} yet
-            </div>
-          )}
-        </div>
       </div>
-
-      <CreateFolderModal
-        isOpen={isCreateFolderOpen}
-        onClose={() => setIsCreateFolderOpen(false)}
-        onSubmit={handleCreateFolder}
-        tier={activeTier}
-      />
-      <UploadFilesModal
-        isOpen={isUploadOpen}
-        onClose={() => setIsUploadOpen(false)}
-        onSubmit={handleUploadFile}
-        tier={activeTier}
-        folderId={currentFolderId}
-      />
-      <EditFolderModal
-        folder={editingFolder}
-        isOpen={isEditFolderOpen}
-        onClose={() => setIsEditFolderOpen(false)}
-        onSave={handleSaveFolder}
-      />
-      <EditFileModal
-        file={editingFile}
-        isOpen={isEditFileOpen}
-        onClose={() => setIsEditFileOpen(false)}
-        onSave={handleSaveFile}
-      />
     </div>
   );
 }
