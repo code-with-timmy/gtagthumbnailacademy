@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, ShieldCheck, User, Mail, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
-export default function UserManagement() {
+export default function AdminKofi() {
   const { user: adminUser, isLoading: isLoadingAdmin } = useUser();
   const [selectedUserId, setSelectedUserId] = useState("");
   const queryClient = useQueryClient();
@@ -54,8 +54,8 @@ export default function UserManagement() {
 
   if (adminUser?.role !== "admin") {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-mono">
-        403_FORBIDDEN: ADMIN_ACCESS_REQUIRED
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-mono text-center p-10">
+        403_ACCESS_DENIED: ADMINISTRATOR_ONLY
       </div>
     );
   }
@@ -69,8 +69,7 @@ export default function UserManagement() {
             User Management
           </h1>
           <p className="text-slate-500 text-sm mt-2">
-            Select a user from the database to manually override their access or
-            roles.
+            Select a user to manually modify their database record.
           </p>
         </header>
 
@@ -103,7 +102,7 @@ export default function UserManagement() {
         {isLoadingTarget ? (
           <div className="flex flex-col items-center justify-center p-20 bg-slate-900/20 rounded-2xl border border-slate-800 border-dashed">
             <Loader2 className="animate-spin text-sky-500 mb-4" />
-            <p className="text-slate-500 text-sm">Loading user profile...</p>
+            <p className="text-slate-500 text-sm">Fetching record details...</p>
           </div>
         ) : targetUser ? (
           <EditForm
@@ -119,7 +118,7 @@ export default function UserManagement() {
           <div className="border-2 border-dashed border-slate-800/50 rounded-2xl p-20 text-center bg-slate-900/10">
             <User className="mx-auto text-slate-800 mb-4" size={48} />
             <p className="text-slate-600 font-medium">
-              No user selected to edit
+              Please select a user to view their data
             </p>
           </div>
         )}
@@ -129,12 +128,12 @@ export default function UserManagement() {
 }
 
 /**
- * Sub-component for the Actual Edit Card (Matches your Reference Image)
+ * Sub-component for the Edit Form Card
  */
 function EditForm({ user, onSuccess }) {
   const [formData, setFormData] = useState({ ...user });
 
-  // Reset form data when the user changes via the dropdown
+  // Update form state whenever a new user is selected from the parent dropdown
   useEffect(() => {
     setFormData({ ...user });
   }, [user]);
@@ -148,16 +147,32 @@ function EditForm({ user, onSuccess }) {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success(`Successfully updated ${user.email}`);
+      toast.success(`Profile updated for ${user.email}`);
       onSuccess();
     },
-    onError: (err) => toast.error(`Error: ${err.message}`),
+    onError: (err) => {
+      toast.error(`Error updating profile: ${err.message}`);
+    },
   });
 
   const handleSave = () => {
-    // Basic cleanup: remove system fields that shouldn't be sent back to Supabase
-    const { id, created_at, email, ...updates } = formData;
+    // Explicitly define columns to update, ensuring dates are null if empty
+    const updates = {
+      role: formData.role,
+      subscription_tier: formData.subscription_tier,
+      has_course_access: formData.has_course_access,
+      has_assets_access: formData.has_assets_access,
+      last_payment_date: formData.last_payment_date || null,
+      expires_at: formData.expires_at || null,
+    };
+
     updateMutation.mutate(updates);
+  };
+
+  // Helper function to format ISO strings to YYYY-MM-DD for the HTML date input
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return "";
+    return dateString.split("T")[0];
   };
 
   return (
@@ -165,17 +180,19 @@ function EditForm({ user, onSuccess }) {
       <CardContent className="p-8 space-y-7">
         <div className="border-b border-slate-100 pb-5 mb-2">
           <h2 className="text-2xl font-bold tracking-tight">Edit User</h2>
-          <p className="text-sm text-slate-500 mt-1">{user.email}</p>
+          <p className="text-sm text-slate-500 mt-1 uppercase tracking-widest font-mono">
+            {user.email}
+          </p>
         </div>
 
-        {/* Role Field */}
+        {/* Role Select */}
         <div className="space-y-1">
           <Label className="font-bold text-slate-800 text-sm">role</Label>
           <p className="text-[11px] text-slate-400 mb-2">
-            The role of the user in the app
+            Primary user role in the application
           </p>
           <select
-            value={formData.role}
+            value={formData.role || "user"}
             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             className="w-full border border-slate-200 rounded-lg p-3 bg-slate-50 font-medium text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all"
           >
@@ -184,14 +201,14 @@ function EditForm({ user, onSuccess }) {
           </select>
         </div>
 
-        {/* Tier Field */}
+        {/* Tier Select */}
         <div className="space-y-1">
           <Label className="font-bold text-slate-800 text-sm">tier</Label>
           <p className="text-[11px] text-slate-400 mb-2">
-            User's subscription tier
+            Assigned subscription plan
           </p>
           <select
-            value={formData.subscription_tier}
+            value={formData.subscription_tier || "free"}
             onChange={(e) =>
               setFormData({ ...formData, subscription_tier: e.target.value })
             }
@@ -204,13 +221,13 @@ function EditForm({ user, onSuccess }) {
           </select>
         </div>
 
-        {/* Access Checkboxes */}
-        <div className="space-y-5 pt-2">
+        {/* Checkboxes */}
+        <div className="space-y-5 pt-2 border-y border-slate-50 py-5">
           <div className="flex items-start space-x-4">
             <Checkbox
               id="course"
               className="mt-1"
-              checked={formData.has_course_access}
+              checked={formData.has_course_access || false}
               onCheckedChange={(val) =>
                 setFormData({ ...formData, has_course_access: !!val })
               }
@@ -223,7 +240,7 @@ function EditForm({ user, onSuccess }) {
                 has_course_access
               </label>
               <p className="text-xs text-slate-500">
-                Whether user has course access
+                Enable or disable course content
               </p>
             </div>
           </div>
@@ -232,7 +249,7 @@ function EditForm({ user, onSuccess }) {
             <Checkbox
               id="assets"
               className="mt-1"
-              checked={formData.has_assets_access}
+              checked={formData.has_assets_access || false}
               onCheckedChange={(val) =>
                 setFormData({ ...formData, has_assets_access: !!val })
               }
@@ -245,53 +262,47 @@ function EditForm({ user, onSuccess }) {
                 has_assets_access
               </label>
               <p className="text-xs text-slate-500">
-                Whether user has assets access
+                Enable or disable digital asset downloads
               </p>
             </div>
           </div>
         </div>
 
-        {/* Status Select */}
-        <div className="space-y-1">
-          <Label className="font-bold text-slate-800 text-sm">
-            subscription_status
-          </Label>
-          <select
-            value={formData.subscription_status}
-            onChange={(e) =>
-              setFormData({ ...formData, subscription_status: e.target.value })
-            }
-            className="w-full border border-slate-200 rounded-lg p-3 bg-slate-50 font-medium text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all"
-          >
-            <option value="none">none</option>
-            <option value="active">active</option>
-            <option value="expired">expired</option>
-          </select>
-        </div>
-
-        {/* Expiry Date Picker */}
+        {/* Date: expires_at */}
         <div className="space-y-2">
-          <Label className="font-bold text-slate-800 text-sm">
-            access_expires_at
-          </Label>
+          <Label className="font-bold text-slate-800 text-sm">expires_at</Label>
           <p className="text-[11px] text-slate-400 mb-2">
-            When access expires (leave empty for permanent)
+            When user access automatically revokes
           </p>
           <Input
             type="date"
-            value={
-              formData.access_expires_at
-                ? formData.access_expires_at.split("T")[0]
-                : ""
-            }
+            value={formatDateForInput(formData.expires_at)}
             onChange={(e) =>
-              setFormData({ ...formData, access_expires_at: e.target.value })
+              setFormData({ ...formData, expires_at: e.target.value })
             }
-            className="bg-slate-50 border-slate-200 h-11"
+            className="bg-slate-50 border-slate-200 h-11 focus:ring-sky-500"
           />
         </div>
 
-        {/* Submit Button */}
+        {/* Date: last_payment_date */}
+        <div className="space-y-2">
+          <Label className="font-bold text-slate-800 text-sm">
+            last_payment_date
+          </Label>
+          <p className="text-[11px] text-slate-400 mb-2">
+            Date of most recent successful payment
+          </p>
+          <Input
+            type="date"
+            value={formatDateForInput(formData.last_payment_date)}
+            onChange={(e) =>
+              setFormData({ ...formData, last_payment_date: e.target.value })
+            }
+            className="bg-slate-50 border-slate-200 h-11 focus:ring-sky-500"
+          />
+        </div>
+
+        {/* Action Button */}
         <Button
           className="w-full bg-slate-900 text-white hover:bg-black h-14 text-lg font-bold mt-8 shadow-lg active:scale-[0.98] transition-all rounded-xl"
           onClick={handleSave}
@@ -299,7 +310,7 @@ function EditForm({ user, onSuccess }) {
         >
           {updateMutation.isLoading ? (
             <div className="flex items-center gap-2">
-              <Loader2 className="animate-spin w-5 h-5" /> Saving Changes...
+              <Loader2 className="animate-spin w-5 h-5" /> Processing...
             </div>
           ) : (
             "Submit"
