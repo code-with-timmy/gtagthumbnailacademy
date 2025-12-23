@@ -1,16 +1,23 @@
 /* eslint-disable react/prop-types */
 import React from "react";
-import { Download, GripVertical, Check, Pencil, Trash2 } from "lucide-react";
+import {
+  Download,
+  GripVertical,
+  Check,
+  Pencil,
+  Trash2,
+  ExternalLink,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
 const getIconForFile = (title) => {
   const ext = title?.split(".").pop().toLowerCase();
-  if (["png", "jpg", "jpeg", "webp", "gif"].includes(ext)) return null; // Use image
+  if (["png", "jpg", "jpeg", "webp", "gif"].includes(ext)) return null;
   if (ext === "psd") return "Ps";
   if (ext === "zip" || ext === "rar") return "📦";
   if (ext === "mp4" || ext === "mov") return "🎥";
-  return "📄";
+  return "🔗"; // Changed default to link icon since you use links
 };
 
 export default function FileCard({
@@ -23,11 +30,17 @@ export default function FileCard({
   onDelete,
 }) {
   const fileExt = file.title?.split(".").pop().toLowerCase();
-  const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(fileExt);
+
+  // LOGIC CHANGE: Check if there is a custom thumbnail FIRST
+  // If thumbnail_url exists and isn't just the file_url, we use it.
+  const hasThumbnail =
+    file.thumbnail_url && file.thumbnail_url !== file.file_url;
+  const isDirectImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(fileExt);
+
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
-      className="glass-card rounded-xl overflow-hidden relative group"
+      className="glass-card rounded-xl overflow-hidden relative group border border-white/5 bg-slate-900/40"
     >
       {/* Drag Handle / Select */}
       <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
@@ -75,34 +88,43 @@ export default function FileCard({
         </div>
       )}
 
-      <div className="aspect-[4/3] bg-gray-900/50 relative flex items-center justify-center overflow-hidden border-b border-white/5">
-        {isImage ? (
+      {/* FIXED 1920x1080 PREVIEW AREA */}
+      <div className="aspect-video bg-gray-900 relative flex items-center justify-center overflow-hidden border-b border-white/5">
+        {hasThumbnail || isDirectImage ? (
           <img
-            src={file.file_url} // Use the actual file_url for images
+            // Priority: thumbnail_url, fallback: file_url
+            src={hasThumbnail ? file.thumbnail_url : file.file_url}
             alt={file.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (
           <div className="flex flex-col items-center gap-2">
             <span className="text-4xl">{getIconForFile(file.title)}</span>
-            <span className="text-[10px] text-gray-500 uppercase font-bold">
-              {fileExt}
+            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">
+              {fileExt || "Link"}
             </span>
           </div>
         )}
 
         {/* PSD Badge */}
         {fileExt === "psd" && (
-          <div className="absolute bottom-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+          <div className="absolute bottom-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-lg">
             PSD
+          </div>
+        )}
+
+        {/* Link Indicator Overlay (Optional) */}
+        {file.file_url?.includes("drive.google.com") && (
+          <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm p-1 rounded">
+            <ExternalLink className="w-3 h-3 text-blue-400" />
           </div>
         )}
       </div>
 
-      {/* Info */}
-      <div className="p-3 bg-black/20">
+      {/* Info & Button */}
+      <div className="p-3 bg-black/20 backdrop-blur-md">
         <h4
-          className="font-medium text-xs truncate mb-2 text-gray-200"
+          className="font-medium text-[11px] truncate mb-2 text-gray-200"
           title={file.title}
         >
           {file.title}
@@ -113,10 +135,12 @@ export default function FileCard({
             onDownload?.();
           }}
           size="sm"
-          className="w-full h-8 text-xs bg-white/10 hover:bg-white/20 text-white border border-white/10"
+          className="w-full h-8 text-[11px] bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30 transition-all font-bold"
         >
           <Download className="w-3 h-3 mr-1" />
-          Download
+          {file.file_url?.includes("drive.google.com")
+            ? "Open Link"
+            : "Download"}
         </Button>
       </div>
     </motion.div>

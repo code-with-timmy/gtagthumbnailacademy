@@ -200,38 +200,31 @@ export default function Assets() {
     }
   };
 
+  // Locate this in your Assets.js and update it:
   const handleDeleteFile = async (file) => {
+    if (!window.confirm("Delete this asset?")) return;
     try {
-      // 1. Extract the path correctly
-      // We use decodeURIComponent in case there are spaces or special chars in the name
-      const storagePath = decodeURIComponent(
-        file.file_url.split("/storage/v1/object/public/assets/")[1]
-      );
-
-      if (storagePath) {
-        const { error: storageError } = await supabase.storage
-          .from("assets")
-          .remove([storagePath]);
-
-        if (storageError) {
-          console.error("Storage delete failed:", storageError.message);
-          // We throw here so the DB record isn't deleted if the file isn't gone
-          throw storageError;
-        }
+      // 1. Delete Asset File (if it's not a link)
+      if (file.file_url.includes("/storage/v1/object/public/assets/")) {
+        const storagePath = decodeURIComponent(
+          file.file_url.split("/assets/")[1]
+        );
+        await supabase.storage.from("assets").remove([storagePath]);
       }
 
-      // 2. Delete the DB record only after storage is confirmed gone
-      const { error: dbError } = await supabase
-        .from("asset_files")
-        .delete()
-        .eq("id", file.id);
+      // 2. Delete Thumbnail (New logic)
+      if (file.thumbnail_url && file.thumbnail_url.includes("/assets/")) {
+        const thumbPath = decodeURIComponent(
+          file.thumbnail_url.split("/assets/")[1]
+        );
+        await supabase.storage.from("assets").remove([thumbPath]);
+      }
 
-      if (dbError) throw dbError;
-
+      // 3. Delete DB record
+      await supabase.from("asset_files").delete().eq("id", file.id);
       loadData();
     } catch (error) {
       console.error("Error deleting asset:", error);
-      alert("Failed to delete. Check console for details.");
     }
   };
 

@@ -1,9 +1,9 @@
 /* eslint-disable react/prop-types */
 import React, { useState, useCallback } from "react";
-import { X, Upload, Link2, Loader2 } from "lucide-react";
+import { X, Upload, Link2, Loader2, ImageIcon } from "lucide-react"; // Added ImageIcon
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import supabase from "@/supabase"; // Ensure this is your configured supabase client
+import supabase from "@/supabase";
 
 export default function UploadFilesModal({
   isOpen,
@@ -15,20 +15,12 @@ export default function UploadFilesModal({
   const [files, setFiles] = useState([]);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkTitle, setLinkTitle] = useState("");
+  const [thumbnailFile, setThumbnailFile] = useState(null); // State for the cover image
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  // ... (handleDrop and handleFileSelect stay the same)
-
-  // ... inside UploadFilesModal ...
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  // 1. handleDrop should NOT have [files] in the dependency array
-
-  // Helper to recursively get all files from a directory entry
   const scanEntries = async (entries) => {
     let allFiles = [];
-
     for (const entry of entries) {
       if (entry.isFile) {
         const file = await new Promise((resolve) => entry.file(resolve));
@@ -38,7 +30,6 @@ export default function UploadFilesModal({
         const innerEntries = await new Promise((resolve) => {
           directoryReader.readEntries(resolve);
         });
-        // Recursively scan subfolders
         const recursiveFiles = await scanEntries(innerEntries);
         allFiles = [...allFiles, ...recursiveFiles];
       }
@@ -49,14 +40,11 @@ export default function UploadFilesModal({
   const handleDrop = useCallback(async (e) => {
     e.preventDefault();
     setIsDragging(false);
-
-    // webkitGetAsEntry is the key to reading folders
     const items = Array.from(e.dataTransfer.items);
     if (items && items.length > 0) {
       const entries = items
         .map((item) => item.webkitGetAsEntry())
         .filter(Boolean);
-
       try {
         const droppedFiles = await scanEntries(entries);
         setFiles((prev) => [...prev, ...droppedFiles]);
@@ -64,12 +52,9 @@ export default function UploadFilesModal({
         console.error("Folder scan failed:", err);
       }
     }
-
     e.dataTransfer.clearData();
   }, []);
 
-  if (!isOpen) return null;
-  // 2. handleFileSelect doesn't need useCallback, just a regular function
   const handleFileSelect = (e) => {
     const selectedFiles = Array.from(e.target.files);
     if (selectedFiles.length > 0) {
@@ -93,14 +78,31 @@ export default function UploadFilesModal({
     setIsLoading(true);
 
     try {
-      // Capture the current files into a local variable
-      // This prevents the "write after end" if setFiles is called mid-loop
       const filesToUpload = [...files];
 
       for (const item of filesToUpload) {
         let finalUrl = "";
+        let finalThumbUrl = ""; // This will hold the 1920x1080 image link
         let title = "";
 
+        // 1. UPLOAD THE THUMBNAIL FIRST (if provided)
+        if (thumbnailFile) {
+          const thumbExt = thumbnailFile.name.split(".").pop();
+          const thumbName = `thumbs/${crypto.randomUUID()}-${Date.now()}.${thumbExt}`;
+
+          const { error: thumbError } = await supabase.storage
+            .from("assets")
+            .upload(thumbName, thumbnailFile);
+
+          if (thumbError) throw thumbError;
+
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("assets").getPublicUrl(thumbName);
+          finalThumbUrl = publicUrl;
+        }
+
+        // 2. HANDLE THE ASSET (LINK OR FILE)
         if (item.isLink) {
           finalUrl = item.url;
           title = item.title;
@@ -109,7 +111,7 @@ export default function UploadFilesModal({
           const fileName = `${crypto.randomUUID()}-${Date.now()}.${fileExt}`;
           const filePath = `${tier}/${fileName}`;
 
-          const { data, error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from("assets")
             .upload(filePath, item);
 
@@ -118,22 +120,22 @@ export default function UploadFilesModal({
           const {
             data: { publicUrl },
           } = supabase.storage.from("assets").getPublicUrl(filePath);
-
           finalUrl = publicUrl;
           title = item.name;
         }
 
-        // Save to Database
+        // 3. SAVE TO DATABASE
         await onSubmit({
-          title: title,
+          name: title, // Make sure your DB column is 'name' or 'title'
           file_url: finalUrl,
-          thumbnail_url: finalUrl,
-          tier: tier.toLowerCase(), // Force lowercase to match filter
+          thumbnail_url: finalThumbUrl || finalUrl, // Fallback to asset URL if no thumb
+          tier: tier.toLowerCase(),
           folder_id: folderId,
         });
       }
 
-      setFiles([]); // Clear files ONLY after loop finishes
+      setFiles([]);
+      setThumbnailFile(null); // Reset thumbnail
       onClose();
     } catch (error) {
       console.error("Upload failed:", error);
@@ -142,11 +144,12 @@ export default function UploadFilesModal({
       setIsLoading(false);
     }
   };
-  // ... (Rest of your JSX remains exactly the same)
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="glass-card rounded-2xl p-6 max-w-lg w-full relative">
+      <div className="glass-card rounded-2xl p-6 max-w-lg w-full relative bg-slate-900 border border-white/10">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-white"
@@ -156,6 +159,24 @@ export default function UploadFilesModal({
 
         <h3 className="text-xl font-bold mb-6">Upload Assets</h3>
 
+        {/* THUMBNAIL SECTION (Step 1) */}
+        <div className="mb-6 p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
+          <label className="text-sm font-medium text-blue-300 mb-2 flex items-center gap-2">
+            <ImageIcon className="w-4 h-4" /> Cover Thumbnail (1920x1080)
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setThumbnailFile(e.target.files[0])}
+            className="text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+          />
+          {thumbnailFile && (
+            <p className="text-[10px] text-emerald-400 mt-1">
+              ✓ {thumbnailFile.name} ready
+            </p>
+          )}
+        </div>
+
         {/* Drop Zone */}
         <div
           onDragOver={(e) => {
@@ -164,26 +185,23 @@ export default function UploadFilesModal({
           }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-xl p-8 text-center mb-4 transition-colors ${
+          className={`border-2 border-dashed rounded-xl p-6 text-center mb-4 transition-colors ${
             isDragging ? "border-blue-500 bg-blue-500/10" : "border-white/20"
           }`}
         >
-          <Upload className="w-10 h-10 text-gray-500 mx-auto mb-3" />
-          <p className="text-gray-300 mb-1">Drag & drop files here</p>
-          <p className="text-gray-500 text-sm mb-3">
-            or click to browse (multiple files supported)
-          </p>
+          <Upload className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+          <p className="text-gray-300 text-sm mb-1">Drag files or browse</p>
           <input
             type="file"
             multiple
-            accept=".jpg, .jpeg, .png, .webp" // This forces the explorer to show these files
+            accept=".jpg,.jpeg,.png,.webp"
             onChange={handleFileSelect}
             className="hidden"
             id="file-upload"
           />
           <label
             htmlFor="file-upload"
-            className="cursor-pointer text-blue-400 hover:text-blue-300"
+            className="cursor-pointer text-xs text-blue-400 hover:text-blue-300"
           >
             Browse files
           </label>
@@ -195,14 +213,14 @@ export default function UploadFilesModal({
             <Input
               value={linkTitle}
               onChange={(e) => setLinkTitle(e.target.value)}
-              placeholder="Link title"
-              className="bg-white/5 border-white/10"
+              placeholder="Google Drive Title"
+              className="bg-white/5 border-white/10 text-sm"
             />
             <Input
               value={linkUrl}
               onChange={(e) => setLinkUrl(e.target.value)}
-              placeholder="URL"
-              className="bg-white/5 border-white/10"
+              placeholder="Paste Link URL"
+              className="bg-white/5 border-white/10 text-sm"
             />
             <Button
               onClick={handleAddLink}
@@ -212,23 +230,25 @@ export default function UploadFilesModal({
               <Link2 className="w-4 h-4" />
             </Button>
           </div>
-          <p className="text-gray-500 text-xs">+ Add Link (No File)</p>
+          <p className="text-gray-500 text-[10px]">
+            + Add Google Drive/External Link
+          </p>
         </div>
 
         {/* Files List */}
         {files.length > 0 && (
-          <div className="mb-4 max-h-40 overflow-y-auto">
+          <div className="mb-4 max-h-32 overflow-y-auto bg-black/20 rounded-lg p-2">
             {files.map((file, idx) => (
               <div
                 key={idx}
-                className="flex items-center justify-between py-2 border-b border-white/10"
+                className="flex items-center justify-between py-1 border-b border-white/5"
               >
-                <span className="text-sm truncate">
+                <span className="text-xs truncate text-gray-400">
                   {file.isLink ? file.title : file.name}
                 </span>
                 <button
                   onClick={() => setFiles(files.filter((_, i) => i !== idx))}
-                  className="text-red-400 text-sm"
+                  className="text-red-400 text-[10px]"
                 >
                   Remove
                 </button>
@@ -240,12 +260,12 @@ export default function UploadFilesModal({
         <Button
           onClick={handleUpload}
           disabled={isLoading || files.length === 0}
-          className="w-full bg-gradient-to-r from-blue-600 to-cyan-500"
+          className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 py-6"
         >
           {isLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
-            `Upload ${files.length} Items`
+            `Publish ${files.length} Assets`
           )}
         </Button>
       </div>
