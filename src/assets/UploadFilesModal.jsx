@@ -127,7 +127,7 @@ export default function UploadFilesModal({
 
         // 3. SAVE TO DATABASE
         await onSubmit({
-          name: title, // Make sure your DB column is 'name' or 'title'
+          title: title, // Make sure your DB column is 'name' or 'title'
           file_url: finalUrl,
           thumbnail_url: finalThumbUrl || finalUrl, // Fallback to asset URL if no thumb
           tier: tier.toLowerCase(),

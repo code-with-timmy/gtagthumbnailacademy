@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useLogout } from "@/pages/Authentication/useLogout";
 import { useUser } from "@/pages/Authentication/useUser";
+import { Avatar } from "@radix-ui/react-avatar";
 
 function AppLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -139,6 +140,21 @@ function AppLayout() {
                   <span>Upload</span>
                 </NavLink>
               )}
+              {isAdmin && (
+                <NavLink
+                  to="/adminkofi"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-4 py-2 rounded-lg transition-all nav-glow ${
+                      isActive
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-300 hover:text-white hover:bg-white/5"
+                    }`
+                  }
+                >
+                  <Avatar className="w-4 h-4" />
+                  <span>Admin</span>
+                </NavLink>
+              )}
               <Button
                 onClick={logout}
                 variant="ghost"
@@ -196,6 +212,21 @@ function AppLayout() {
               >
                 <UploadIcon className="w-4 h-4" />
                 <span>Upload</span>
+              </NavLink>
+            )}
+            {isAdmin && (
+              <NavLink
+                to="/adminkofi"
+                className={({ isActive }) =>
+                  `flex items-center gap-2 px-4 py-2 rounded-lg transition-all nav-glow ${
+                    isActive
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`
+                }
+              >
+                <Avatar className="w-4 h-4" />
+                <span>Admin</span>
               </NavLink>
             )}
             <button
