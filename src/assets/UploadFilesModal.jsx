@@ -1,10 +1,14 @@
 /* eslint-disable react/prop-types */
 import React, { useState, useCallback } from "react";
-import { X, Upload, Link2, Loader2, ImageIcon, Plus } from "lucide-react"; // Added ImageIcon
+import { X, Upload, Link2, Loader2, ImageIcon, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import supabase from "@/supabase";
-import { Label } from "recharts";
+
+// Fixed Label import - removed the one from 'recharts'
+const Label = ({ children, className }) => (
+  <label className={`block text-sm font-medium ${className}`}>{children}</label>
+);
 
 export default function UploadFilesModal({
   isOpen,
@@ -16,7 +20,7 @@ export default function UploadFilesModal({
   const [files, setFiles] = useState([]);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkTitle, setLinkTitle] = useState("");
-  const [thumbnailFile, setThumbnailFile] = useState(null); // State for the cover image
+  const [thumbnailFile, setThumbnailFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -75,18 +79,26 @@ export default function UploadFilesModal({
   };
 
   const handleUpload = async () => {
-    if (files.length === 0) return;
+    // AUTO-ADD LOGIC: Gather files + current link input if not empty
+    let itemsToProcess = [...files];
+    if (linkUrl.trim() && linkTitle.trim()) {
+      itemsToProcess.push({ isLink: true, url: linkUrl, title: linkTitle });
+    }
+
+    if (itemsToProcess.length === 0) {
+      alert("Please add a file or a link first!");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const filesToUpload = [...files];
-
-      for (const item of filesToUpload) {
+      for (const item of itemsToProcess) {
         let finalUrl = "";
-        let finalThumbUrl = ""; // This will hold the 1920x1080 image link
-        let title = "";
+        let finalThumbUrl = "";
+        let itemTitle = "";
 
-        // 1. UPLOAD THE THUMBNAIL FIRST (if provided)
+        // 1. UPLOAD THE THUMBNAIL FIRST
         if (thumbnailFile) {
           const thumbExt = thumbnailFile.name.split(".").pop();
           const thumbName = `thumbs/${crypto.randomUUID()}-${Date.now()}.${thumbExt}`;
@@ -106,7 +118,7 @@ export default function UploadFilesModal({
         // 2. HANDLE THE ASSET (LINK OR FILE)
         if (item.isLink) {
           finalUrl = item.url;
-          title = item.title;
+          itemTitle = item.title;
         } else {
           const fileExt = item.name.split(".").pop();
           const fileName = `${crypto.randomUUID()}-${Date.now()}.${fileExt}`;
@@ -122,21 +134,24 @@ export default function UploadFilesModal({
             data: { publicUrl },
           } = supabase.storage.from("assets").getPublicUrl(filePath);
           finalUrl = publicUrl;
-          title = item.name;
+          itemTitle = item.name;
         }
 
-        // 3. SAVE TO DATABASE
+        // 3. SAVE TO DATABASE (Using 'title' as requested)
         await onSubmit({
-          title: title, // Make sure your DB column is 'name' or 'title'
+          title: itemTitle,
           file_url: finalUrl,
-          thumbnail_url: finalThumbUrl || finalUrl, // Fallback to asset URL if no thumb
+          thumbnail_url: finalThumbUrl || finalUrl,
           tier: tier.toLowerCase(),
           folder_id: folderId,
         });
       }
 
+      // Reset state
       setFiles([]);
-      setThumbnailFile(null); // Reset thumbnail
+      setThumbnailFile(null);
+      setLinkUrl("");
+      setLinkTitle("");
       onClose();
     } catch (error) {
       console.error("Upload failed:", error);
@@ -148,31 +163,34 @@ export default function UploadFilesModal({
 
   if (!isOpen) return null;
 
+  // Calculate total items for the button label
+  const totalItemsCount = files.length + (linkUrl && linkTitle ? 1 : 0);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="glass-card rounded-2xl p-6 max-w-lg w-full relative bg-slate-900 border border-white/10">
+      <div className="glass-card rounded-2xl p-6 max-w-lg w-full relative bg-slate-900 border border-white/10 shadow-2xl">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white"
+          className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h3 className="text-xl font-bold mb-6">Upload Assets</h3>
+        <h3 className="text-xl font-bold mb-6 text-white">Upload Assets</h3>
 
-        {/* THUMBNAIL SECTION (Step 1) */}
-        <div className="mb-6 p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
-          <label className="text-sm font-medium text-blue-300 mb-2 flex items-center gap-2">
+        {/* THUMBNAIL SECTION */}
+        <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+          <label className="text-xs font-bold text-blue-400 mb-2 flex items-center gap-2 uppercase tracking-wider">
             <ImageIcon className="w-4 h-4" /> Cover Thumbnail (1920x1080)
           </label>
           <input
             type="file"
             accept="image/*"
             onChange={(e) => setThumbnailFile(e.target.files[0])}
-            className="text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+            className="text-xs text-gray-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer w-full"
           />
           {thumbnailFile && (
-            <p className="text-[10px] text-emerald-400 mt-1">
+            <p className="text-[10px] text-emerald-400 mt-2 font-medium">
               ✓ {thumbnailFile.name} ready
             </p>
           )}
@@ -186,12 +204,14 @@ export default function UploadFilesModal({
           }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-xl p-6 text-center mb-4 transition-colors ${
-            isDragging ? "border-blue-500 bg-blue-500/10" : "border-white/20"
+          className={`border-2 border-dashed rounded-xl p-6 text-center mb-4 transition-all ${
+            isDragging
+              ? "border-blue-500 bg-blue-500/10 scale-[0.98]"
+              : "border-white/10 bg-black/20"
           }`}
         >
-          <Upload className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-          <p className="text-gray-300 text-sm mb-1">Drag files or browse</p>
+          <Upload className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+          <p className="text-gray-400 text-sm mb-1">Drag files here</p>
           <input
             type="file"
             multiple
@@ -202,58 +222,57 @@ export default function UploadFilesModal({
           />
           <label
             htmlFor="file-upload"
-            className="cursor-pointer text-xs text-blue-400 hover:text-blue-300"
+            className="cursor-pointer text-xs text-blue-400 hover:text-blue-300 font-medium"
           >
-            Browse files
+            or browse local files
           </label>
         </div>
 
-        {/* Add Link */}
-        {/* Add Link Section - Improved for Clarity */}
-        <div className="mb-4 p-3 bg-white/5 rounded-xl border border-white/10">
-          <Label className="text-[10px] uppercase text-gray-500 mb-2 block">
-            Add Google Drive / External Link
+        {/* Link Section */}
+        <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/10">
+          <Label className="text-[10px] uppercase text-gray-500 mb-2 font-bold tracking-widest">
+            Link Assets (Google Drive, Mega, etc)
           </Label>
           <div className="flex flex-col gap-2">
             <Input
               value={linkTitle}
               onChange={(e) => setLinkTitle(e.target.value)}
-              placeholder="Asset Title (e.g. Cinema 4D Project)"
-              className="bg-black/20 border-white/10"
+              placeholder="Asset Title (e.g. Logo Pack)"
+              className="bg-black/40 border-white/5 text-sm h-9"
             />
             <div className="flex gap-2">
               <Input
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
                 placeholder="https://drive.google.com/..."
-                className="bg-black/20 border-white/10"
+                className="bg-black/40 border-white/5 text-sm h-9"
               />
               <Button
                 onClick={handleAddLink}
                 type="button"
-                className="bg-blue-500 hover:bg-blue-600 px-4 flex gap-2 items-center"
+                size="sm"
+                className="bg-white/10 hover:bg-white/20 px-3"
               >
                 <Plus className="w-4 h-4" />
-                Add
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Files List */}
+        {/* Files Queue List */}
         {files.length > 0 && (
-          <div className="mb-4 max-h-32 overflow-y-auto bg-black/20 rounded-lg p-2">
+          <div className="mb-4 max-h-24 overflow-y-auto bg-black/40 rounded-lg p-2 border border-white/5">
             {files.map((file, idx) => (
               <div
                 key={idx}
-                className="flex items-center justify-between py-1 border-b border-white/5"
+                className="flex items-center justify-between py-1 px-1 border-b border-white/5 last:border-0"
               >
-                <span className="text-xs truncate text-gray-400">
-                  {file.isLink ? file.title : file.name}
+                <span className="text-[10px] truncate text-gray-400 max-w-[200px]">
+                  {file.isLink ? `🔗 ${file.title}` : `📁 ${file.name}`}
                 </span>
                 <button
                   onClick={() => setFiles(files.filter((_, i) => i !== idx))}
-                  className="text-red-400 text-[10px]"
+                  className="text-red-500 hover:text-red-400 text-[10px] font-bold"
                 >
                   Remove
                 </button>
@@ -264,13 +283,15 @@ export default function UploadFilesModal({
 
         <Button
           onClick={handleUpload}
-          disabled={isLoading || files.length === 0}
-          className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 py-6"
+          disabled={isLoading || totalItemsCount === 0}
+          className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 py-6 text-sm font-bold shadow-lg shadow-blue-900/20"
         >
           {isLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
-            `Publish ${files.length} Assets`
+            `Publish ${totalItemsCount} Asset${
+              totalItemsCount !== 1 ? "s" : ""
+            }`
           )}
         </Button>
       </div>
