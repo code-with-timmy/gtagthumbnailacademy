@@ -79,83 +79,88 @@ export default function UploadFilesModal({
   };
 
   const handleUpload = async () => {
-    // AUTO-ADD LOGIC: Gather files + current link input if not empty
+    // Capture the current inputs
     let itemsToProcess = [...files];
     if (linkUrl.trim() && linkTitle.trim()) {
       itemsToProcess.push({ isLink: true, url: linkUrl, title: linkTitle });
     }
 
-    if (itemsToProcess.length === 0) {
-      alert("Please add a file or a link first!");
-      return;
-    }
-
+    if (itemsToProcess.length === 0) return;
     setIsLoading(true);
 
     try {
       for (const item of itemsToProcess) {
         let finalUrl = "";
         let finalThumbUrl = "";
-        let itemTitle = "";
+        const itemTitle = item.isLink ? item.title : item.name;
 
-        // 1. UPLOAD THE THUMBNAIL FIRST
+        // STEP 1: Upload Thumbnail (if selected)
         if (thumbnailFile) {
-          const thumbExt = thumbnailFile.name.split(".").pop();
-          const thumbName = `thumbs/${crypto.randomUUID()}-${Date.now()}.${thumbExt}`;
-
+          const thumbPath = `thumbs/${Date.now()}-${thumbnailFile.name.replace(
+            /\s/g,
+            "_"
+          )}`;
           const { error: thumbError } = await supabase.storage
             .from("assets")
-            .upload(thumbName, thumbnailFile);
+            .upload(thumbPath, thumbnailFile);
 
-          if (thumbError) throw thumbError;
+          if (thumbError)
+            throw new Error(`Thumbnail upload failed: ${thumbError.message}`);
 
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("assets").getPublicUrl(thumbName);
-          finalThumbUrl = publicUrl;
+          const { data: pUrl } = supabase.storage
+            .from("assets")
+            .getPublicUrl(thumbPath);
+          finalThumbUrl = pUrl.publicUrl;
         }
 
-        // 2. HANDLE THE ASSET (LINK OR FILE)
+        // STEP 2: Handle Link vs Physical File
         if (item.isLink) {
           finalUrl = item.url;
-          itemTitle = item.title;
         } else {
-          const fileExt = item.name.split(".").pop();
-          const fileName = `${crypto.randomUUID()}-${Date.now()}.${fileExt}`;
-          const filePath = `${tier}/${fileName}`;
-
-          const { error: uploadError } = await supabase.storage
+          const filePath = `${tier}/${Date.now()}-${item.name.replace(
+            /\s/g,
+            "_"
+          )}`;
+          const { error: fileError } = await supabase.storage
             .from("assets")
             .upload(filePath, item);
 
-          if (uploadError) throw uploadError;
+          if (fileError)
+            throw new Error(`File upload failed: ${fileError.message}`);
 
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("assets").getPublicUrl(filePath);
-          finalUrl = publicUrl;
-          itemTitle = item.name;
+          const { data: pUrl } = supabase.storage
+            .from("assets")
+            .getPublicUrl(filePath);
+          finalUrl = pUrl.publicUrl;
         }
 
-        // 3. SAVE TO DATABASE (Using 'title' as requested)
-        await onSubmit({
-          title: itemTitle,
-          file_url: finalUrl,
-          thumbnail_url: finalThumbUrl || finalUrl,
-          tier: tier.toLowerCase(),
-          folder_id: folderId,
-        });
+        // STEP 3: Database Insertion
+        const { error: dbError } = await supabase
+          .from("asset_files") // Ensure this table name is correct
+          .insert([
+            {
+              title: itemTitle,
+              file_url: finalUrl,
+              thumbnail_url: finalThumbUrl || finalUrl,
+              tier: tier.toLowerCase(),
+              folder_id: folderId,
+            },
+          ]);
+
+        if (dbError)
+          throw new Error(`Database save failed: ${dbError.message}`);
       }
 
-      // Reset state
+      // Success Cleanup
       setFiles([]);
-      setThumbnailFile(null);
       setLinkUrl("");
       setLinkTitle("");
+      setThumbnailFile(null);
       onClose();
+      window.location.reload(); // Force a refresh to show new items
     } catch (error) {
-      console.error("Upload failed:", error);
-      alert("Error uploading: " + error.message);
+      console.error("Upload Error:", error);
+      alert(error.message); // Tell the user exactly which step failed
     } finally {
       setIsLoading(false);
     }
