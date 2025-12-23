@@ -1,9 +1,10 @@
 /* eslint-disable react/prop-types */
 import React, { useState, useCallback } from "react";
-import { X, Upload, Link2, Loader2, ImageIcon } from "lucide-react"; // Added ImageIcon
+import { X, Upload, Link2, Loader2, ImageIcon, Plus } from "lucide-react"; // Added ImageIcon
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import supabase from "@/supabase";
+import { Label } from "recharts";
 
 export default function UploadFilesModal({
   isOpen,
@@ -208,31 +209,35 @@ export default function UploadFilesModal({
         </div>
 
         {/* Add Link */}
-        <div className="mb-4">
-          <div className="flex gap-2 mb-2">
+        {/* Add Link Section - Improved for Clarity */}
+        <div className="mb-4 p-3 bg-white/5 rounded-xl border border-white/10">
+          <Label className="text-[10px] uppercase text-gray-500 mb-2 block">
+            Add Google Drive / External Link
+          </Label>
+          <div className="flex flex-col gap-2">
             <Input
               value={linkTitle}
               onChange={(e) => setLinkTitle(e.target.value)}
-              placeholder="Google Drive Title"
-              className="bg-white/5 border-white/10 text-sm"
+              placeholder="Asset Title (e.g. Cinema 4D Project)"
+              className="bg-black/20 border-white/10"
             />
-            <Input
-              value={linkUrl}
-              onChange={(e) => setLinkUrl(e.target.value)}
-              placeholder="Paste Link URL"
-              className="bg-white/5 border-white/10 text-sm"
-            />
-            <Button
-              onClick={handleAddLink}
-              variant="outline"
-              className="border-white/20"
-            >
-              <Link2 className="w-4 h-4" />
-            </Button>
+            <div className="flex gap-2">
+              <Input
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="https://drive.google.com/..."
+                className="bg-black/20 border-white/10"
+              />
+              <Button
+                onClick={handleAddLink}
+                type="button"
+                className="bg-blue-500 hover:bg-blue-600 px-4 flex gap-2 items-center"
+              >
+                <Plus className="w-4 h-4" />
+                Add
+              </Button>
+            </div>
           </div>
-          <p className="text-gray-500 text-[10px]">
-            + Add Google Drive/External Link
-          </p>
         </div>
 
         {/* Files List */}
