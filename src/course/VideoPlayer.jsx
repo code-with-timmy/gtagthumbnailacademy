@@ -1,7 +1,10 @@
-import React from "react";
-import { Lock, Play } from "lucide-react";
+import React, { useRef } from "react";
+import { Lock, Play, Maximize } from "lucide-react"; // Added Maximize icon
+import { Button } from "@/components/ui/button";
 
 export default function VideoPlayer({ lesson, user }) {
+  const containerRef = useRef(null);
+
   if (!lesson) {
     return (
       <div className="glass-card rounded-2xl md:rounded-3xl p-8 md:p-16 text-center border border-white/10 shadow-2xl">
@@ -15,11 +18,23 @@ export default function VideoPlayer({ lesson, user }) {
     );
   }
 
+  // Function to trigger Fullscreen on the CONTAINER, not the video
+  const handleFullscreen = () => {
+    if (containerRef.current) {
+      if (!document.fullscreenElement) {
+        containerRef.current.requestFullscreen().catch((err) => {
+          alert(`Error attempting to enable full-screen mode: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+  };
+
   const userIdentifier = user?.email || user?.full_name || "Authorized User";
 
   return (
     <div className="glass-card rounded-2xl md:rounded-3xl p-4 md:p-8 space-y-6 md:space-y-8 border border-white/10 shadow-2xl">
-      {/* 1. CSS for the Dynamic Watermark Animation */}
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -36,12 +51,17 @@ export default function VideoPlayer({ lesson, user }) {
           white-space: nowrap;
           pointer-events: none;
           user-select: none;
+          z-index: 50; 
+        }
+        /* Ensure watermark is visible in native fullscreen */
+        :fullscreen .animate-watermark {
+          font-size: 20px;
+          opacity: 0.4;
         }
       `,
         }}
       />
 
-      {/* Title & Description */}
       <div>
         <h1 className="coolvetica text-2xl md:text-4xl font-bold mb-2 md:mb-3 tracking-[0.08em] leading-tight uppercase">
           {lesson.title}
@@ -53,11 +73,14 @@ export default function VideoPlayer({ lesson, user }) {
         )}
       </div>
 
-      {/* Video Container */}
-      <div className="relative group overflow-hidden rounded-xl md:rounded-2xl ring-1 md:ring-2 ring-white/10 shadow-2xl">
+      {/* VIDEO CONTAINER - The Ref is now here */}
+      <div
+        ref={containerRef}
+        className="relative group overflow-hidden rounded-xl md:rounded-2xl ring-1 md:ring-2 ring-white/10 shadow-2xl bg-black"
+      >
         {lesson.video_url ? (
-          <div className="aspect-video bg-black relative">
-            {/* 2. Floating Watermark Overlay */}
+          <div className="aspect-video relative">
+            {/* Floating Watermark Overlay */}
             <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
               <div className="animate-watermark text-white/20 text-[10px] md:text-xs font-mono bg-black/20 px-2 py-1 rounded">
                 {userIdentifier} • {new Date().toLocaleDateString()} • IP
@@ -65,13 +88,21 @@ export default function VideoPlayer({ lesson, user }) {
               </div>
             </div>
 
+            {/* Custom Fullscreen Trigger for Watermark Persistence */}
+            <button
+              onClick={handleFullscreen}
+              className="absolute bottom-4 right-4 z-20 p-2 bg-black/50 hover:bg-black/80 rounded-lg border border-white/10 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Secure Fullscreen"
+            >
+              <Maximize className="w-5 h-5" />
+            </button>
+
             <video
               key={lesson.video_url}
               controls
               className="w-full h-full object-contain"
               src={lesson.video_url}
-              /* 3. Anti-Download Props */
-              controlsList="nodownload noplaybackrate"
+              controlsList="nodownload"
               disablePictureInPicture
               onContextMenu={(e) => e.preventDefault()}
               playsInline
@@ -88,7 +119,7 @@ export default function VideoPlayer({ lesson, user }) {
         )}
       </div>
 
-      {/* Protected Content Notice */}
+      {/* Protected Notice */}
       <div className="bg-gradient-to-r from-yellow-900/40 via-yellow-800/20 to-yellow-900/40 border border-yellow-500/30 rounded-xl md:rounded-2xl p-4 md:p-6 backdrop-blur-sm">
         <div className="flex items-start gap-3 md:gap-4">
           <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
@@ -103,11 +134,6 @@ export default function VideoPlayer({ lesson, user }) {
               <span className="text-yellow-400 font-bold">
                 {userIdentifier}
               </span>
-            </p>
-            <p className="hidden md:block text-sm text-yellow-100/70 mt-2 leading-relaxed">
-              This session is being monitored. Sharing, recording, or
-              distributing this content is a violation of the Terms of Service
-              and will result in permanent account termination and legal action.
             </p>
           </div>
         </div>
