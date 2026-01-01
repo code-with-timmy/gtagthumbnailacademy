@@ -47,13 +47,13 @@ const PromoManager = () => {
     <div
       className={`py-2 px-4 text-center text-sm font-medium text-white transition-all duration-500 ${
         status === "BEFORE"
-          ? "bg-slate-900"
+          ? "bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600"
           : "bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600"
       }`}
     >
       {status === "BEFORE" ? (
         <span>
-          DISCOUNT SALE STARTS IN:{" "}
+          PRICE SLASH STARTS IN:{" "}
           <span className="font-mono ml-2">{timeLeft}</span>
         </span>
       ) : (
