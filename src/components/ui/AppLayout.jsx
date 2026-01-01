@@ -78,12 +78,12 @@ function AppLayout() {
       `}</style>
 
       {/* Promo Banner */}
-      {/* <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 py-2 px-4 text-center text-sm font-medium">
+      <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 py-2 px-4 text-center text-sm font-medium">
         <span>Launch Week Special: 50% Off All Plans</span>
         <span className="ml-3 px-2 py-0.5 bg-white/20 rounded text-xs font-bold">
           ENDS SOON
         </span>
-      </div> */}
+      </div>
 
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-[#0a0e1a]/95 backdrop-blur-lg border-b border-white/10">
